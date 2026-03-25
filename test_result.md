@@ -102,10 +102,10 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Multi-barbershop booking app. Each barbershop has own account (email/password), can configure name/photo, define time slots, manage appointments. Clients access via unique link /b/{id} and only see that barbershop's data."
+user_problem_statement: "Convert Expo/React Native frontend to a simple React web app using Vite. Must be compatible with Vercel. Use barbershop color scheme: black, white, red."
 
 backend:
-  - task: "Barbershop registration/login"
+  - task: "Backend API (unchanged from previous)"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -115,143 +115,94 @@ backend:
     status_history:
       - working: true
         agent: "main"
-        comment: "POST /auth/register and POST /auth/login working with JWT. Tested with curl."
+        comment: "All API endpoints working - auth, barbershop management, slots, appointments."
 
-  - task: "Protected routes with JWT"
+frontend:
+  - task: "Vite + React web app setup"
     implemented: true
     working: true
-    file: "/app/backend/server.py"
+    file: "/app/frontend/vite.config.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
       - working: true
         agent: "main"
-        comment: "All admin endpoints require Bearer token. Unauthorized access returns 401."
+        comment: "Vite 5 with React configured. allowedHosts: true for proxy compatibility."
 
-  - task: "Barbershop profile management"
+  - task: "Landing page with barbershop theme"
     implemented: true
     working: true
-    file: "/app/backend/server.py"
+    file: "/app/frontend/src/pages/Landing.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Black/white/red color scheme with animated barber pole."
+
+  - task: "Login/Register pages"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Login.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Tested registration flow - creates account and redirects to admin."
+
+  - task: "Admin panel"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/Admin.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "3 tabs (Citas, Horarios, Perfil) with barbershop branding."
+
+  - task: "Client booking page (/b/:id)"
+    implemented: true
+    working: true
+    file: "/app/frontend/src/pages/ClientBooking.jsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Shows barbershop name, date picker, available slots."
+
+  - task: "Vercel compatibility"
+    implemented: true
+    working: true
+    file: "/app/frontend/vercel.json"
     stuck_count: 0
     priority: "medium"
     needs_retesting: false
     status_history:
       - working: true
         agent: "main"
-        comment: "PATCH /barbershop/profile allows updating name and photo (base64)."
-
-  - task: "Time slots with barberia_id isolation"
-    implemented: true
-    working: true
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "main"
-        comment: "All slots linked to barberia_id. Admin only sees their own slots."
-
-  - task: "Appointments with barberia_id isolation"
-    implemented: true
-    working: true
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "main"
-        comment: "All appointments linked to barberia_id. Admin only sees their own appointments."
-
-  - task: "Public barbershop endpoints"
-    implemented: true
-    working: true
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "main"
-        comment: "GET /barbershop/{id}/public, GET /barbershop/{id}/slots, POST /barbershop/{id}/appointments all working."
-
-frontend:
-  - task: "Landing page with login/register"
-    implemented: true
-    working: true
-    file: "/app/frontend/app/index.tsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "main"
-        comment: "Screenshot verified - shows BarberBook branding, features, and login/register buttons."
-
-  - task: "Registration page"
-    implemented: true
-    working: true
-    file: "/app/frontend/app/register.tsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "main"
-        comment: "Screenshot verified - form with barbershop name, email, password fields."
-
-  - task: "Login page"
-    implemented: true
-    working: true
-    file: "/app/frontend/app/login.tsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "main"
-        comment: "Screenshot verified - email and password fields with login button."
-
-  - task: "Admin panel with 3 tabs (Citas/Horarios/Perfil)"
-    implemented: true
-    working: true
-    file: "/app/frontend/app/admin.tsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "main"
-        comment: "Appointments management, slot management, and profile with shareable link."
-
-  - task: "Client booking via /b/{id}"
-    implemented: true
-    working: true
-    file: "/app/frontend/app/b/[id].tsx"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "main"
-        comment: "Screenshot verified - shows barbershop name, available slots for that barbershop only."
+        comment: "vercel.json with SPA rewrites configured."
 
 metadata:
   created_by: "main_agent"
-  version: "2.0"
-  test_sequence: 2
+  version: "3.0"
+  test_sequence: 3
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Multi-barbershop isolation"
-    - "JWT authentication flow"
+    - "Web app conversion complete"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
-    message: "Multi-barbershop feature complete. Each barbershop isolated by barberia_id. JWT auth protecting admin routes. Public client booking via /b/{id}."
+    message: "Converted from Expo to Vite+React web app. Barbershop color scheme (black/white/red) applied. Vercel compatible. All pages tested via screenshots."
