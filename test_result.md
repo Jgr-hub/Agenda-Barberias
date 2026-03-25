@@ -102,22 +102,10 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Barbershop booking app with barber (admin) and client roles. Features: barber defines available slots, views/confirms/rejects appointments. Client selects date/time, enters name/phone, submits booking request. System stores in DB with status pending/confirmed/rejected. Notification on confirm."
+user_problem_statement: "Multi-barbershop booking app. Each barbershop has own account (email/password), can configure name/photo, define time slots, manage appointments. Clients access via unique link /b/{id} and only see that barbershop's data."
 
 backend:
-  - task: "API Root endpoint"
-    implemented: true
-    working: true
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "low"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "main"
-        comment: "GET /api/ returns API info"
-
-  - task: "Time slots CRUD endpoints"
+  - task: "Barbershop registration/login"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -127,9 +115,9 @@ backend:
     status_history:
       - working: true
         agent: "main"
-        comment: "Tested GET/POST/DELETE slots endpoints with curl. Bulk create and single create working."
+        comment: "POST /auth/register and POST /auth/login working with JWT. Tested with curl."
 
-  - task: "Appointments CRUD endpoints"
+  - task: "Protected routes with JWT"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -139,21 +127,9 @@ backend:
     status_history:
       - working: true
         agent: "main"
-        comment: "Tested POST /appointments (create), PATCH /appointments/:id (update status). Slot availability updates correctly on booking."
+        comment: "All admin endpoints require Bearer token. Unauthorized access returns 401."
 
-  - task: "Appointment status update (confirm/reject)"
-    implemented: true
-    working: true
-    file: "/app/backend/server.py"
-    stuck_count: 0
-    priority: "high"
-    needs_retesting: false
-    status_history:
-      - working: true
-        agent: "main"
-        comment: "PATCH endpoint updates status and creates notification log. Rejected appointments make slot available again."
-
-  - task: "Notifications logging"
+  - task: "Barbershop profile management"
     implemented: true
     working: true
     file: "/app/backend/server.py"
@@ -163,10 +139,46 @@ backend:
     status_history:
       - working: true
         agent: "main"
-        comment: "Simulated notifications stored in MongoDB. GET /notifications returns history."
+        comment: "PATCH /barbershop/profile allows updating name and photo (base64)."
+
+  - task: "Time slots with barberia_id isolation"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "All slots linked to barberia_id. Admin only sees their own slots."
+
+  - task: "Appointments with barberia_id isolation"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "All appointments linked to barberia_id. Admin only sees their own appointments."
+
+  - task: "Public barbershop endpoints"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "GET /barbershop/{id}/public, GET /barbershop/{id}/slots, POST /barbershop/{id}/appointments all working."
 
 frontend:
-  - task: "Client booking view"
+  - task: "Landing page with login/register"
     implemented: true
     working: true
     file: "/app/frontend/app/index.tsx"
@@ -176,9 +188,33 @@ frontend:
     status_history:
       - working: true
         agent: "main"
-        comment: "Screenshot verified - date picker, time slots, booking form visible and functional"
+        comment: "Screenshot verified - shows BarberBook branding, features, and login/register buttons."
 
-  - task: "Admin panel - appointments view"
+  - task: "Registration page"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/register.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Screenshot verified - form with barbershop name, email, password fields."
+
+  - task: "Login page"
+    implemented: true
+    working: true
+    file: "/app/frontend/app/login.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Screenshot verified - email and password fields with login button."
+
+  - task: "Admin panel with 3 tabs (Citas/Horarios/Perfil)"
     implemented: true
     working: true
     file: "/app/frontend/app/admin.tsx"
@@ -188,34 +224,34 @@ frontend:
     status_history:
       - working: true
         agent: "main"
-        comment: "Screenshot verified - shows appointments with status badges and confirm/reject buttons"
+        comment: "Appointments management, slot management, and profile with shareable link."
 
-  - task: "Admin panel - time slots management"
+  - task: "Client booking via /b/{id}"
     implemented: true
     working: true
-    file: "/app/frontend/app/admin.tsx"
+    file: "/app/frontend/app/b/[id].tsx"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
       - working: true
         agent: "main"
-        comment: "Screenshot verified - shows slots with availability status, add/delete functionality"
+        comment: "Screenshot verified - shows barbershop name, available slots for that barbershop only."
 
 metadata:
   created_by: "main_agent"
-  version: "1.0"
-  test_sequence: 1
+  version: "2.0"
+  test_sequence: 2
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Client booking flow"
-    - "Admin slot management"
+    - "Multi-barbershop isolation"
+    - "JWT authentication flow"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
-    message: "MVP implementation complete. Backend tested with curl - all endpoints working. Frontend verified with screenshots. Ready for user testing."
+    message: "Multi-barbershop feature complete. Each barbershop isolated by barberia_id. JWT auth protecting admin routes. Public client booking via /b/{id}."

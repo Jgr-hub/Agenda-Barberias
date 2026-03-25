@@ -10,15 +10,20 @@ import {
   ActivityIndicator,
   RefreshControl,
   Modal,
+  Image,
+  Clipboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../src/context/AuthContext';
+import * as ImagePicker from 'expo-image-picker';
 
 const API_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 interface TimeSlot {
   id: string;
+  barberia_id: string;
   date: string;
   time: string;
   is_available: boolean;
@@ -26,6 +31,7 @@ interface TimeSlot {
 
 interface Appointment {
   id: string;
+  barberia_id: string;
   client_name: string;
   client_phone: string;
   date: string;
@@ -34,10 +40,12 @@ interface Appointment {
   created_at: string;
 }
 
-type TabType = 'appointments' | 'slots';
+type TabType = 'appointments' | 'slots' | 'profile';
 
 export default function AdminPanel() {
   const router = useRouter();
+  const { barbershop, token, logout, updateProfile, isLoading: authLoading } = useAuth();
+  
   const [activeTab, setActiveTab] = useState<TabType>('appointments');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [slots, setSlots] = useState<TimeSlot[]>([]);
@@ -47,11 +55,33 @@ export default function AdminPanel() {
   const [newSlotDate, setNewSlotDate] = useState('');
   const [newSlotTime, setNewSlotTime] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  
+  // Profile state
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (!authLoading && !token) {
+      router.replace('/login');
+    }
+  }, [authLoading, token]);
+
+  useEffect(() => {
+    if (barbershop) {
+      setProfileName(barbershop.name);
+      setProfilePhoto(barbershop.photo);
+    }
+  }, [barbershop]);
 
   // Fetch appointments
   const fetchAppointments = useCallback(async () => {
+    if (!token) return;
     try {
-      const response = await fetch(`${API_URL}/api/appointments`);
+      const response = await fetch(`${API_URL}/api/appointments`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (response.ok) {
         const data = await response.json();
         setAppointments(data);
@@ -59,12 +89,15 @@ export default function AdminPanel() {
     } catch (error) {
       console.error('Error fetching appointments:', error);
     }
-  }, []);
+  }, [token]);
 
   // Fetch all slots
   const fetchSlots = useCallback(async () => {
+    if (!token) return;
     try {
-      const response = await fetch(`${API_URL}/api/slots/all`);
+      const response = await fetch(`${API_URL}/api/slots/all`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (response.ok) {
         const data = await response.json();
         setSlots(data);
@@ -72,7 +105,7 @@ export default function AdminPanel() {
     } catch (error) {
       console.error('Error fetching slots:', error);
     }
-  }, []);
+  }, [token]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -81,8 +114,10 @@ export default function AdminPanel() {
   }, [fetchAppointments, fetchSlots]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (token) {
+      loadData();
+    }
+  }, [token, loadData]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -95,15 +130,15 @@ export default function AdminPanel() {
     try {
       const response = await fetch(`${API_URL}/api/appointments/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ status }),
       });
 
       if (response.ok) {
-        Alert.alert(
-          'Éxito',
-          status === 'confirmed' ? 'Cita confirmada' : 'Cita rechazada'
-        );
+        Alert.alert('Éxito', status === 'confirmed' ? 'Cita confirmada' : 'Cita rechazada');
         fetchAppointments();
         fetchSlots();
       } else {
@@ -128,6 +163,7 @@ export default function AdminPanel() {
             try {
               const response = await fetch(`${API_URL}/api/slots/${id}`, {
                 method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
               });
               if (response.ok) {
                 fetchSlots();
@@ -150,14 +186,12 @@ export default function AdminPanel() {
       return;
     }
 
-    // Validate date format
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateRegex.test(newSlotDate)) {
       Alert.alert('Error', 'Formato de fecha: YYYY-MM-DD');
       return;
     }
 
-    // Validate time format
     const timeRegex = /^\d{2}:\d{2}$/;
     if (!timeRegex.test(newSlotTime)) {
       Alert.alert('Error', 'Formato de hora: HH:MM');
@@ -168,7 +202,10 @@ export default function AdminPanel() {
     try {
       const response = await fetch(`${API_URL}/api/slots`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ date: newSlotDate, time: newSlotTime }),
       });
 
@@ -217,7 +254,10 @@ export default function AdminPanel() {
 
       const response = await fetch(`${API_URL}/api/slots/bulk`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(slotsToCreate),
       });
 
@@ -233,6 +273,68 @@ export default function AdminPanel() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Pick image for profile
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0].base64) {
+      setProfilePhoto(`data:image/jpeg;base64,${result.assets[0].base64}`);
+    }
+  };
+
+  // Save profile
+  const saveProfile = async () => {
+    if (!profileName.trim()) {
+      Alert.alert('Error', 'El nombre es requerido');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await updateProfile(profileName.trim(), profilePhoto);
+      setEditingProfile(false);
+      Alert.alert('Éxito', 'Perfil actualizado');
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'No se pudo actualizar');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Copy link
+  const copyLink = () => {
+    if (barbershop) {
+      const link = `${API_URL}/b/${barbershop.id}`;
+      Clipboard.setString(link);
+      Alert.alert('Copiado', 'Link copiado al portapapeles');
+    }
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    Alert.alert(
+      'Cerrar sesión',
+      '¿Estás seguro?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/');
+          },
+        },
+      ]
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -253,24 +355,43 @@ export default function AdminPanel() {
 
   const pendingCount = appointments.filter(a => a.status === 'pending').length;
 
+  if (authLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator size="large" color="#6366F1" style={{ flex: 1 }} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#374151" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Panel Admin</Text>
-          {pendingCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{pendingCount}</Text>
+        <View style={styles.headerLeft}>
+          {barbershop?.photo ? (
+            <Image source={{ uri: barbershop.photo }} style={styles.headerAvatar} />
+          ) : (
+            <View style={styles.headerAvatarPlaceholder}>
+              <Ionicons name="cut" size={20} color="#6366F1" />
             </View>
           )}
+          <View>
+            <Text style={styles.headerTitle} numberOfLines={1}>
+              {barbershop?.name || 'Mi Barbería'}
+            </Text>
+            {pendingCount > 0 && (
+              <Text style={styles.pendingText}>{pendingCount} pendiente(s)</Text>
+            )}
+          </View>
         </View>
-        <TouchableOpacity onPress={onRefresh}>
-          <Ionicons name="refresh" size={24} color="#6366F1" />
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={onRefresh} style={styles.headerButton}>
+            <Ionicons name="refresh" size={22} color="#6366F1" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout} style={styles.headerButton}>
+            <Ionicons name="log-out-outline" size={22} color="#EF4444" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Tabs */}
@@ -281,7 +402,7 @@ export default function AdminPanel() {
         >
           <Ionicons
             name="calendar"
-            size={20}
+            size={18}
             color={activeTab === 'appointments' ? '#6366F1' : '#9CA3AF'}
           />
           <Text style={[styles.tabText, activeTab === 'appointments' && styles.tabTextActive]}>
@@ -294,11 +415,24 @@ export default function AdminPanel() {
         >
           <Ionicons
             name="time"
-            size={20}
+            size={18}
             color={activeTab === 'slots' ? '#6366F1' : '#9CA3AF'}
           />
           <Text style={[styles.tabText, activeTab === 'slots' && styles.tabTextActive]}>
             Horarios
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'profile' && styles.tabActive]}
+          onPress={() => setActiveTab('profile')}
+        >
+          <Ionicons
+            name="person"
+            size={18}
+            color={activeTab === 'profile' ? '#6366F1' : '#9CA3AF'}
+          />
+          <Text style={[styles.tabText, activeTab === 'profile' && styles.tabTextActive]}>
+            Perfil
           </Text>
         </TouchableOpacity>
       </View>
@@ -369,7 +503,7 @@ export default function AdminPanel() {
                 ))
               )}
             </>
-          ) : (
+          ) : activeTab === 'slots' ? (
             // Slots Tab
             <>
               <TouchableOpacity
@@ -425,6 +559,93 @@ export default function AdminPanel() {
                 ))
               )}
             </>
+          ) : (
+            // Profile Tab
+            <View style={styles.profileContainer}>
+              {/* Profile Photo */}
+              <TouchableOpacity
+                style={styles.profilePhotoContainer}
+                onPress={editingProfile ? pickImage : undefined}
+                disabled={!editingProfile}
+              >
+                {profilePhoto ? (
+                  <Image source={{ uri: profilePhoto }} style={styles.profilePhoto} />
+                ) : (
+                  <View style={styles.profilePhotoPlaceholder}>
+                    <Ionicons name="cut" size={40} color="#6366F1" />
+                  </View>
+                )}
+                {editingProfile && (
+                  <View style={styles.editPhotoOverlay}>
+                    <Ionicons name="camera" size={24} color="#FFFFFF" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              {/* Profile Name */}
+              {editingProfile ? (
+                <TextInput
+                  style={styles.profileNameInput}
+                  value={profileName}
+                  onChangeText={setProfileName}
+                  placeholder="Nombre de la barbería"
+                  placeholderTextColor="#9CA3AF"
+                />
+              ) : (
+                <Text style={styles.profileName}>{barbershop?.name}</Text>
+              )}
+
+              {/* Edit/Save Button */}
+              {editingProfile ? (
+                <View style={styles.profileActions}>
+                  <TouchableOpacity
+                    style={styles.cancelProfileButton}
+                    onPress={() => {
+                      setEditingProfile(false);
+                      setProfileName(barbershop?.name || '');
+                      setProfilePhoto(barbershop?.photo || null);
+                    }}
+                  >
+                    <Text style={styles.cancelProfileButtonText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveProfileButton, submitting && styles.buttonDisabled]}
+                    onPress={saveProfile}
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <Text style={styles.saveProfileButtonText}>Guardar</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.editProfileButton}
+                  onPress={() => setEditingProfile(true)}
+                >
+                  <Ionicons name="pencil" size={18} color="#6366F1" />
+                  <Text style={styles.editProfileButtonText}>Editar perfil</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Shareable Link */}
+              <View style={styles.linkSection}>
+                <Text style={styles.linkLabel}>Link de reservas</Text>
+                <View style={styles.linkContainer}>
+                  <Text style={styles.linkText} numberOfLines={1}>
+                    {`${API_URL}/b/${barbershop?.id}`}
+                  </Text>
+                  <TouchableOpacity style={styles.copyButton} onPress={copyLink}>
+                    <Ionicons name="copy-outline" size={20} color="#6366F1" />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.linkHint}>
+                  Comparte este link con tus clientes para que reserven citas
+                </Text>
+              </View>
+            </View>
           )}
         </ScrollView>
       )}
@@ -511,31 +732,44 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  backButton: {
-    padding: 8,
-  },
-  headerCenter: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111827',
+  headerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
   },
-  badge: {
-    backgroundColor: '#EF4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+  headerAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF2FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    marginRight: 12,
   },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
+  headerTitle: {
+    fontSize: 16,
     fontWeight: '600',
+    color: '#111827',
+    maxWidth: 180,
+  },
+  pendingText: {
+    fontSize: 12,
+    color: '#F59E0B',
+    marginTop: 2,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerButton: {
+    padding: 8,
   },
   tabs: {
     flexDirection: 'row',
@@ -548,7 +782,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
@@ -556,7 +790,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#6366F1',
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '500',
     color: '#9CA3AF',
     marginLeft: 6,
@@ -725,6 +959,141 @@ const styles = StyleSheet.create({
   deleteButton: {
     padding: 6,
   },
+  // Profile styles
+  profileContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  profilePhotoContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  profilePhoto: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  profilePhotoPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editPhotoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#6366F1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  profileNameInput: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+    textAlign: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: '#6366F1',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+    minWidth: 200,
+  },
+  editProfileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 20,
+  },
+  editProfileButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366F1',
+    marginLeft: 6,
+  },
+  profileActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelProfileButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 20,
+  },
+  cancelProfileButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  saveProfileButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#6366F1',
+    borderRadius: 20,
+  },
+  saveProfileButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  linkSection: {
+    width: '100%',
+    marginTop: 32,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  linkLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  linkContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    paddingLeft: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  linkText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#6366F1',
+    paddingVertical: 12,
+  },
+  copyButton: {
+    padding: 12,
+    borderLeftWidth: 1,
+    borderLeftColor: '#E5E7EB',
+  },
+  linkHint: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 8,
+  },
+  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
