@@ -358,4 +358,136 @@ async def get_barbershop_public_slots(barbershop_id: str, date: Optional[str] = 
         query["date"] = date
     
     slots = await db.time_slots.find(query).sort([("date", 1), ("time", 1)]).to_list(1000)
-    return [TimeSlot(**slot) for
+    return [TimeSlot(**slot) for slot in slots]
+
+# ============ APPOINTMENTS ENDPOINTS ============
+@api_router.get("/appointments", response_model=List[Appointment])
+async def get_appointments(
+    status: Optional[str] = None,
+    barbershop: dict = Depends(get_current_barbershop)
+):
+    query = {"barberia_id": barbershop["id"]}
+    if status:
+        query["status"] = status
+    
+    appointments = await db.appointments.find(query).sort([("date", 1), ("time", 1)]).to_list(1000)
+    return [Appointment(**apt) for apt in appointments]
+
+@api_router.patch("/appointments/{appointment_id}", response_model=Appointment)
+async def update_appointment_status(
+    appointment_id: str,
+    update: AppointmentUpdate,
+    barbershop: dict = Depends(get_current_barbershop)
+):
+    appointment = await db.appointments.find_one({
+        "id": appointment_id,
+        "barberia_id": barbershop["id"]
+    })
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Cita no encontrada")
+    
+    await db.appointments.update_one(
+        {"id": appointment_id},
+        {"$set": {
+            "status": update.status,
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    if update.status == AppointmentStatus.REJECTED:
+        await db.time_slots.update_one(
+            {
+                "barberia_id": barbershop["id"],
+                "date": appointment["date"],
+                "time": appointment["time"]
+            },
+            {"$set": {"is_available": True}}
+        )
+    
+    updated_apt = await db.appointments.find_one({"id": appointment_id})
+    notification = NotificationLog(
+        barberia_id=barbershop["id"],
+        appointment_id=appointment_id,
+        client_name=updated_apt["client_name"],
+        client_phone=updated_apt["client_phone"],
+        status=update.status,
+        message=f"Tu cita del {updated_apt['date']} a las {updated_apt['time']} ha sido {'confirmada' if update.status == 'confirmed' else 'rechazada'}."
+    )
+    await db.notifications.insert_one(notification.dict())
+    
+    return Appointment(**updated_apt)
+
+@api_router.delete("/appointments/{appointment_id}")
+async def delete_appointment(
+    appointment_id: str,
+    barbershop: dict = Depends(get_current_barbershop)
+):
+    appointment = await db.appointments.find_one({
+        "id": appointment_id,
+        "barberia_id": barbershop["id"]
+    })
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Cita no encontrada")
+    
+    if appointment["status"] != "rejected":
+        await db.time_slots.update_one(
+            {
+                "barberia_id": barbershop["id"],
+                "date": appointment["date"],
+                "time": appointment["time"]
+            },
+            {"$set": {"is_available": True}}
+        )
+    
+    await db.appointments.delete_one({"id": appointment_id})
+    return {"message": "Cita eliminada"}
+
+@api_router.post("/barbershop/{barbershop_id}/appointments", response_model=Appointment)
+async def create_public_appointment(barbershop_id: str, apt_input: AppointmentCreate):
+    barbershop = await db.barbershops.find_one({"id": barbershop_id})
+    if not barbershop:
+        raise HTTPException(status_code=404, detail="Barbería no encontrada")
+    
+    slot = await db.time_slots.find_one({
+        "barberia_id": barbershop_id,
+        "date": apt_input.date,
+        "time": apt_input.time,
+        "is_available": True
+    })
+    if not slot:
+        raise HTTPException(status_code=400, detail="Este horario no está disponible")
+    
+    existing = await db.appointments.find_one({
+        "barberia_id": barbershop_id,
+        "date": apt_input.date,
+        "time": apt_input.time,
+        "status": {"$in": ["pending", "confirmed"]}
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Este horario ya está reservado")
+    
+    appointment = Appointment(barberia_id=barbershop_id, **apt_input.dict())
+    await db.appointments.insert_one(appointment.dict())
+    
+    await db.time_slots.update_one(
+        {"id": slot["id"]},
+        {"$set": {"is_available": False}}
+    )
+    
+    return appointment
+
+@api_router.get("/notifications", response_model=List[NotificationLog])
+async def get_notifications(barbershop: dict = Depends(get_current_barbershop)):
+    notifications = await db.notifications.find(
+        {"barberia_id": barbershop["id"]}
+    ).sort("sent_at", -1).to_list(100)
+    return [NotificationLog(**n) for n in notifications]
+
+# Include the router in the main app
+app.include_router(api_router)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
