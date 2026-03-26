@@ -1,0 +1,201 @@
+.landing-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #0a0a0a 0%, #141414 60%, #1a0a0a 100%);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.landing-noise {
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.landing-content {
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* Barber Pole */
+.barber-pole-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.barber-pole {
+  width: 28px;
+  height: 72px;
+  background: var(--color-white);
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 30px rgba(220, 38, 38, 0.4), 0 0 60px rgba(220, 38, 38, 0.1);
+}
+
+.barber-stripes {
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-red) 0px,
+    var(--color-red) 10px,
+    var(--color-white) 10px,
+    var(--color-white) 20px,
+    #1d4ed8 20px,
+    #1d4ed8 30px,
+    var(--color-white) 30px,
+    var(--color-white) 40px
+  );
+  animation: barber-spin 2.5s linear infinite;
+}
+
+@keyframes barber-spin {
+  from { transform: translateY(0); }
+  to { transform: translateY(40px); }
+}
+
+/* Logo */
+.logo-container {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 20px;
+  background: var(--color-dark);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--color-red);
+  box-shadow: 0 0 40px rgba(220, 38, 38, 0.2);
+}
+
+.logo-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--color-red);
+}
+
+.landing-title {
+  font-family: var(--font-display);
+  font-size: 64px;
+  letter-spacing: 3px;
+  color: var(--color-white);
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.landing-subtitle {
+  font-size: 15px;
+  color: var(--color-gray-light);
+  margin-bottom: 40px;
+  font-weight: 400;
+}
+
+/* Features */
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 36px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.feature-item:hover {
+  border-color: rgba(220, 38, 38, 0.4);
+  background: rgba(220, 38, 38, 0.05);
+  transform: translateX(4px);
+}
+
+.feature-item svg {
+  width: 22px;
+  height: 22px;
+  color: var(--color-red);
+  flex-shrink: 0;
+}
+
+.feature-item span {
+  font-size: 14px;
+  color: var(--color-white);
+  font-weight: 500;
+}
+
+/* Buttons */
+.landing-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+}
+
+.btn svg { width: 18px; height: 18px; }
+
+.btn-primary {
+  background: var(--color-red);
+  color: var(--color-white);
+}
+
+.btn-primary:hover {
+  background: var(--color-red-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.35);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-white);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.3);
+}
+
+.landing-footer {
+  margin-top: 28px;
+  font-size: 12px;
+  color: var(--color-gray);
+}
+
+.landing-footer code {
+  background: rgba(220, 38, 38, 0.15);
+  padding: 2px 7px;
+  border-radius: 4px;
+  color: var(--color-red-light);
+  font-size: 11px;
+}
