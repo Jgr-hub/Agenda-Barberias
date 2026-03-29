@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../AuthContext'
+import { useAuth } from '../AuthContext.jsx'
 import './Admin.css'
 
 const API_URL = '/api'
