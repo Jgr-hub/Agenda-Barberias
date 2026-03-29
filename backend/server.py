@@ -42,12 +42,7 @@ app = FastAPI(title="Barbershop Booking API", version="2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://agenda-barberias.vercel.app",
-        os.getenv("FRONTEND_URL", "*")
-    ],
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
