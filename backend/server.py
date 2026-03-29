@@ -41,7 +41,7 @@ app = FastAPI(title="Barbershop Booking API", version="2.0")
 # ============ CORS MIDDLEWARE (ANTES del router) ============
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
+   allow_credentials=False,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
