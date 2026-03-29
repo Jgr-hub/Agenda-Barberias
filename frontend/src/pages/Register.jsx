@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
-import './Auth.css'
+  import './Auth.css'
 
 export default function Register() {
   const navigate = useNavigate()
