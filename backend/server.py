@@ -24,7 +24,7 @@ db_name = os.environ.get('DB_NAME', 'barberia_db')
 if not mongo_url:
     raise ValueError("MONGO_URL environment variable is required")
 
-client = AsyncIOMotorClient(mongo_url)
+client = AsyncIOMotorClient(mongo_url, tls=True, tlsAllowInvalidCertificates=True)
 db = client[db_name]
 
 # JWT Settings
