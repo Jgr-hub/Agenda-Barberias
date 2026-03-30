@@ -37,7 +37,25 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Create the main app
 app = FastAPI(title="Barbershop Booking API", version="2.0")
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
+class ForceCORSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.method == "OPTIONS":
+            from starlette.responses import Response
+            response = Response()
+            response.headers["Access-Control-Allow-Origin"] = "*"
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+            return response
+        response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        return response
+
+app.add_middleware(ForceCORSMiddleware)
 # ============ CORS MIDDLEWARE (ANTES del router) ============
 app.add_middleware(
     CORSMiddleware,
