@@ -479,7 +479,7 @@ async def create_public_appointment(barbershop_id: str, apt_input: AppointmentCr
     if existing:
         raise HTTPException(status_code=400, detail="Este horario ya está reservado")
     
-    appointment = Appointment(barberia_id=barbershop_id, **apt_input.dict())
+    appointment = Appointment(barberia_id=barbershop_id, status=AppointmentStatus.CONFIRMED, **apt_input.dict())
     await db.appointments.insert_one(appointment.dict())
     
     await db.time_slots.update_one(

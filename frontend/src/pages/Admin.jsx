@@ -8,10 +8,10 @@ const API_URL = import.meta.env.VITE_API_URL || '/api'
 const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
-const TIME_SLOTS = [
-  '08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30',
+  const TIME_SLOTS = [
+  '10:00','10:30','11:00','11:30',
   '12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30',
-  '16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30'
+  '16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00'
 ]
 
 export default function Admin() {
@@ -230,16 +230,7 @@ export default function Admin() {
                       <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>{apt.date}</span>
                       <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{apt.time}</span>
                     </div>
-                    {apt.status === 'pending' && (
-                      <div className="appointment-actions">
-                        <button className="btn-confirm" onClick={() => updateStatus(apt.id, 'confirmed')}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>Confirmar
-                        </button>
-                        <button className="btn-reject" onClick={() => updateStatus(apt.id, 'rejected')}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Rechazar
-                        </button>
-                      </div>
-                    )}
+          
                   </div>
                 ))}
               </div>

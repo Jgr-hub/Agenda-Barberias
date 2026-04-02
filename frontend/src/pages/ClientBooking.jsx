@@ -96,8 +96,8 @@ export default function ClientBooking() {
         <div className="success-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         </div>
-        <h1>¡Solicitud Enviada!</h1>
-        <p>Tu solicitud de cita en <strong>{barbershop.name}</strong> ha sido enviada. Te confirmarán pronto.</p>
+        <h1>¡Cita Confirmada! 💈</h1>
+<p>Tu cita en <strong>{barbershop.name}</strong> está confirmada. ¡Te esperamos!</p>
         <button className="btn-primary" onClick={() => { setBookingSuccess(false); setSelectedSlot(null) }}>Hacer otra reserva</button>
       </div>
     </div>
@@ -167,7 +167,7 @@ export default function ClientBooking() {
               </div>
               <div className="input-group">
                 <label>Teléfono</label>
-                <input type="tel" placeholder="Tu número de teléfono" value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} />
+                <input type="tel" placeholder="📱 Ingresa tu número real para confirmarte la cita" value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} />
               </div>
               <button type="submit" className="submit-btn" disabled={submitting}>
                 {submitting ? <div className="spinner small"></div> : <><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Solicitar Cita</>}
