@@ -112,7 +112,6 @@ const [lastBooking, setLastBooking] = useState(null)
     </p>
   )
 })()}
-        <button className="btn-primary" onClick={() => { setBookingSuccess(false); setSelectedSlot(null) }}>Hacer otra reserva</button>
       </div>
     </div>
   )
