@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import './Admin.css'
@@ -59,6 +59,15 @@ export default function Admin() {
 
   useEffect(() => { if (token) loadData() }, [token, loadData])
 
+// Auto-refresh cada 30 segundos
+useEffect(() => {
+  if (!token) return
+  const interval = setInterval(() => {
+    fetchAppointments()
+  }, 30000)
+  return () => clearInterval(interval)
+}, [token, fetchAppointments])
+
   const updateStatus = async (id, status) => {
     try {
       const r = await fetch(`${API_URL}/appointments/${id}`, {
@@ -100,26 +109,7 @@ export default function Admin() {
   const statusClass = (s) => s === 'confirmed' ? 'status-confirmed' : s === 'rejected' ? 'status-rejected' : 'status-pending'
   const statusText = (s) => s === 'confirmed' ? 'Confirmada' : s === 'rejected' ? 'Rechazada' : 'Pendiente'
   const pendingCount = appointments.filter(a => a.status === 'pending').length
-const prevAppointmentCount = useRef(appointments.length)
 
-useEffect(() => {
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission()
-  }
-}, [])
-
-useEffect(() => {
-  if (appointments.length > prevAppointmentCount.current) {
-    if (Notification.permission === 'granted') {
-      new Notification('💈 ¡Nueva cita reservada!', {
-        body: `${appointments[0]?.client_name} reservó para el ${appointments[0]?.date} a las ${appointments[0]?.time}`,
-        icon: '/favicon.ico',
-        requireInteraction: true,
-      })
-    }
-  }
-  prevAppointmentCount.current = appointments.length
-}, [appointments])
   // Calendar helpers
   const getDaysInMonth = (date) => {
     const year = date.getFullYear()
