@@ -15,7 +15,8 @@ export default function ClientBooking() {
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [form, setForm] = useState({ client_name: '', client_phone: '' })
-  const [bookingSuccess, setBookingSuccess] = useState(false)
+ const [bookingSuccess, setBookingSuccess] = useState(false)
+const [lastBooking, setLastBooking] = useState(null)
   const [error, setError] = useState(null)
 
   const generateDates = () => {
@@ -72,7 +73,7 @@ export default function ClientBooking() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_name: form.client_name.trim(), client_phone: form.client_phone.trim(), date: selectedSlot.date, time: selectedSlot.time }),
       })
-      if (r.ok) { setBookingSuccess(true); setShowForm(false); setForm({ client_name: '', client_phone: '' }); setSelectedSlot(null); fetchSlots(selectedDate) }
+      if (r.ok) { setLastBooking(selectedSlot); setBookingSuccess(true); setShowForm(false); setForm({ client_name: '', client_phone: '' }); setSelectedSlot(null); fetchSlots(selectedDate) }
       else { const err = await r.json(); alert(err.detail || 'No se pudo crear la cita') }
     } catch { alert('Error de conexión') }
     finally { setSubmitting(false) }
@@ -97,7 +98,20 @@ export default function ClientBooking() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         </div>
         <h1>¡Cita Confirmada! 💈</h1>
-<p>Tu cita con <strong>{barbershop.name}</strong> está confirmada. ¡Te esperamos!</p>
+ <p>Tu cita con <strong>{barbershop.name}</strong> está confirmada. ¡Te esperamos!</p>
+{(() => {
+  const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+  const [year, month, day] = lastBooking?.date?.split('-') || ['','','']
+  const [h, m] = lastBooking?.time?.split(':') || ['0','0']
+  const hour = parseInt(h)
+  const ampm = hour >= 12 ? 'pm' : 'am'
+  const hour12 = hour % 12 || 12
+  return (
+    <p className="booking-datetime">
+      📅 {parseInt(day)}/{MESES[parseInt(month)-1]}/{year} a las {hour12}:{m}{ampm}
+    </p>
+  )
+})()}
         <button className="btn-primary" onClick={() => { setBookingSuccess(false); setSelectedSlot(null) }}>Hacer otra reserva</button>
       </div>
     </div>
