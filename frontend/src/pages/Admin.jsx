@@ -106,10 +106,42 @@ useEffect(() => {
 
   const handleLogout = () => { if (confirm('¿Cerrar sesión?')) { logout(); navigate('/') } }
 
-  const statusClass = (s) => s === 'confirmed' ? 'status-confirmed' : s === 'rejected' ? 'status-rejected' : 'status-pending'
-  const statusText = (s) => s === 'confirmed' ? 'Confirmada' : s === 'rejected' ? 'Rechazada' : 'Pendiente'
-  const pendingCount = appointments.filter(a => a.status === 'pending').length
+const statusClass = (s) => s === 'confirmed' ? 'status-confirmed' : s === 'rejected' ? 'status-rejected' : 'status-pending'
+const statusText = (s) => s === 'confirmed' ? 'Confirmada' : s === 'rejected' ? 'Rechazada' : 'Pendiente'
+const pendingCount = appointments.filter(a => a.status === 'pending').length
 
+const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+
+const formatDateLabel = (dateStr) => {
+  const [year, month, day] = dateStr.split('-')
+  const todayStr = today.toISOString().split('T')[0]
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
+  const tomorrowStr = tomorrow.toISOString().split('T')[0]
+  if (dateStr === todayStr) return `Hoy — ${parseInt(day)} ${MESES[parseInt(month)-1]} ${year}`
+  if (dateStr === tomorrowStr) return `Mañana — ${parseInt(day)} ${MESES[parseInt(month)-1]} ${year}`
+  return `${parseInt(day)} ${MESES[parseInt(month)-1]} ${year}`
+}
+
+const formatTime = (time) => {
+  const [h, m] = time.split(':')
+  const hour = parseInt(h)
+  const ampm = hour >= 12 ? 'pm' : 'am'
+  const hour12 = hour % 12 || 12
+  return `${hour12}:${m}${ampm}`
+}
+
+const groupedAppointments = appointments
+  .sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date)
+    return a.time.localeCompare(b.time)
+  })
+  .reduce((groups, apt) => {
+    if (!groups[apt.date]) groups[apt.date] = []
+    groups[apt.date].push(apt)
+    return groups
+  }, {})
+
+const sortedDates = Object.keys(groupedAppointments).sort()
   // Calendar helpers
   const getDaysInMonth = (date) => {
     const year = date.getFullYear()
@@ -226,22 +258,28 @@ useEffect(() => {
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     <p>No hay citas</p>
                   </div>
-                ) : appointments.map((apt) => (
-                  <div key={apt.id} className="appointment-card">
-                    <div className="appointment-header">
-                      <div className="appointment-info">
-                        <h3>{apt.client_name}</h3>
-                        <p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.19 11.9 19.79 19.79 0 0 1 1.12 3.24 2 2 0 0 1 3.1 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>{apt.client_phone}</p>
-                      </div>
-                      <span className={`status-badge ${statusClass(apt.status)}`}>{statusText(apt.status)}</span>
-                    </div>
-                    <div className="appointment-datetime">
-                      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>{apt.date}</span>
-                      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{apt.time}</span>
-                    </div>
-          
-                  </div>
-                ))}
+                } : sortedDates.map(date => (
+  <div key={date} className="day-group">
+    <div className={`day-label ${date === today.toISOString().split('T')[0] ? 'day-label-today' : ''}`}>
+      {formatDateLabel(date)}
+    </div>
+    {groupedAppointments[date].map((apt) => (
+      <div key={apt.id} className="appointment-card">
+        <div className="appointment-header">
+          <div className="appointment-info">
+            <h3>{apt.client_name}</h3>
+            <p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.19 11.9 19.79 19.79 0 0 1 1.12 3.24 2 2 0 0 1 3.1 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>{apt.client_phone}</p>
+          </div>
+          <span className={`status-badge ${statusClass(apt.status)}`}>{statusText(apt.status)}</span>
+        </div>
+        <div className="appointment-datetime">
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>{formatDateLabel(date)}</span>
+          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{formatTime(apt.time)}</span>
+        </div>
+      </div>
+    ))}
+  </div>
+))}
               </div>
             )}
 
