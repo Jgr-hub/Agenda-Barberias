@@ -2,39 +2,39 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import './Admin.css'
- 
+
 const API_URL = import.meta.env.VITE_API_URL || '/api'
- 
+
 const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
- 
+
 const TIME_SLOTS = [
   '10:00','10:30','11:00','11:30',
   '12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30',
   '16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00'
 ]
- 
+
 const getTodayStr = () => {
   const t = new Date()
   t.setHours(0,0,0,0)
   return t.toISOString().split('T')[0]
 }
- 
+
 const getTomorrowStr = () => {
   const t = new Date()
   t.setHours(0,0,0,0)
   t.setDate(t.getDate() + 1)
   return t.toISOString().split('T')[0]
 }
- 
+
 const formatDateLabel = (dateStr) => {
   const [year, month, day] = dateStr.split('-')
   if (dateStr === getTodayStr()) return `Hoy — ${parseInt(day)} ${MESES[parseInt(month)-1]} ${year}`
   if (dateStr === getTomorrowStr()) return `Mañana — ${parseInt(day)} ${MESES[parseInt(month)-1]} ${year}`
   return `${parseInt(day)} ${MESES[parseInt(month)-1]} ${year}`
 }
- 
+
 const formatTime = (time) => {
   const [h, m] = time.split(':')
   const hour = parseInt(h)
@@ -42,7 +42,7 @@ const formatTime = (time) => {
   const hour12 = hour % 12 || 12
   return `${hour12}:${m}${ampm}`
 }
- 
+
 export default function Admin() {
   const navigate = useNavigate()
   const { barbershop, token, logout, updateProfile, isLoading: authLoading } = useAuth()
@@ -54,15 +54,15 @@ export default function Admin() {
   const [profileName, setProfileName] = useState('')
   const [profilePhoto, setProfilePhoto] = useState(null)
   const [submitting, setSubmitting] = useState(false)
- 
+
   const [calendarDate, setCalendarDate] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState(null)
   const [selectedTimes, setSelectedTimes] = useState([])
   const [savingSlots, setSavingSlots] = useState(false)
- 
+
   useEffect(() => { if (!authLoading && !token) navigate('/login') }, [authLoading, token, navigate])
   useEffect(() => { if (barbershop) { setProfileName(barbershop.name); setProfilePhoto(barbershop.photo) } }, [barbershop])
- 
+
   const fetchAppointments = useCallback(async () => {
     if (!token) return
     try {
@@ -70,7 +70,7 @@ export default function Admin() {
       if (r.ok) setAppointments(await r.json())
     } catch (e) { console.error(e) }
   }, [token])
- 
+
   const fetchSlots = useCallback(async () => {
     if (!token) return
     try {
@@ -78,21 +78,21 @@ export default function Admin() {
       if (r.ok) setSlots(await r.json())
     } catch (e) { console.error(e) }
   }, [token])
- 
+
   const loadData = useCallback(async () => {
     setLoading(true)
     await Promise.all([fetchAppointments(), fetchSlots()])
     setLoading(false)
   }, [fetchAppointments, fetchSlots])
- 
+
   useEffect(() => { if (token) loadData() }, [token, loadData])
- 
+
   useEffect(() => {
     if (!token) return
     const interval = setInterval(() => { fetchAppointments() }, 30000)
     return () => clearInterval(interval)
   }, [token, fetchAppointments])
- 
+
   const updateStatus = async (id, status) => {
     try {
       const r = await fetch(`${API_URL}/appointments/${id}`, {
@@ -103,7 +103,7 @@ export default function Admin() {
       if (r.ok) { fetchAppointments(); fetchSlots() }
     } catch { alert('Error de conexión') }
   }
- 
+
   const deleteSlot = async (id) => {
     if (!confirm('¿Eliminar este horario?')) return
     try {
@@ -111,12 +111,12 @@ export default function Admin() {
       if (r.ok) fetchSlots()
     } catch { alert('Error de conexión') }
   }
- 
+
   const handlePhotoChange = (e) => {
     const file = e.target.files[0]
     if (file) { const reader = new FileReader(); reader.onloadend = () => setProfilePhoto(reader.result); reader.readAsDataURL(file) }
   }
- 
+
   const saveProfile = async () => {
     if (!profileName.trim()) { alert('El nombre es requerido'); return }
     setSubmitting(true)
@@ -124,17 +124,17 @@ export default function Admin() {
     catch (err) { alert(err.message || 'No se pudo actualizar') }
     finally { setSubmitting(false) }
   }
- 
+
   const copyLink = () => {
     if (barbershop) { navigator.clipboard.writeText(`${window.location.origin}/b/${barbershop.id}`); alert('Link copiado ✓') }
   }
- 
+
   const handleLogout = () => { if (confirm('¿Cerrar sesión?')) { logout(); navigate('/') } }
- 
+
   const statusClass = (s) => s === 'confirmed' ? 'status-confirmed' : s === 'rejected' ? 'status-rejected' : 'status-pending'
   const statusText = (s) => s === 'confirmed' ? 'Confirmada' : s === 'rejected' ? 'Rechazada' : 'Pendiente'
   const pendingCount = appointments.filter(a => a.status === 'pending').length
- 
+
   const groupedAppointments = [...appointments]
     .sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date)
@@ -145,11 +145,9 @@ export default function Admin() {
       groups[apt.date].push(apt)
       return groups
     }, {})
- 
+
   const sortedDates = Object.keys(groupedAppointments).sort()
-const [expandedDays, setExpandedDays] = useState(() => ({ [getTodayStr()]: true }))
-const toggleDay = (date) => setExpandedDays(prev => ({ ...prev, [date]: !prev[date] }))
- 
+
   const getDaysInMonth = (date) => {
     const year = date.getFullYear()
     const month = date.getMonth()
@@ -157,16 +155,16 @@ const toggleDay = (date) => setExpandedDays(prev => ({ ...prev, [date]: !prev[da
     const daysInMonth = new Date(year, month + 1, 0).getDate()
     return { firstDay, daysInMonth }
   }
- 
+
   const formatDate = (year, month, day) => {
     return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   }
- 
+
   const getSlotsForDate = (dateStr) => slots.filter(s => s.date === dateStr)
- 
+
   const today = new Date()
   today.setHours(0,0,0,0)
- 
+
   const handleDayClick = (day) => {
     const dateStr = formatDate(calendarDate.getFullYear(), calendarDate.getMonth(), day)
     const clicked = new Date(dateStr)
@@ -175,13 +173,13 @@ const toggleDay = (date) => setExpandedDays(prev => ({ ...prev, [date]: !prev[da
     const existingTimes = getSlotsForDate(dateStr).map(s => s.time)
     setSelectedTimes(existingTimes)
   }
- 
+
   const toggleTime = (time) => {
     setSelectedTimes(prev =>
       prev.includes(time) ? prev.filter(t => t !== time) : [...prev, time]
     )
   }
- 
+
   const saveSlots = async () => {
     if (!selectedDay) return
     setSavingSlots(true)
@@ -205,14 +203,14 @@ const toggleDay = (date) => setExpandedDays(prev => ({ ...prev, [date]: !prev[da
     } catch { alert('Error al guardar') }
     finally { setSavingSlots(false) }
   }
- 
+
   const prevMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))
   const nextMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))
- 
+
   const { firstDay, daysInMonth } = getDaysInMonth(calendarDate)
- 
+
   if (authLoading) return <div className="admin-page"><div className="loading-container"><div className="spinner"></div></div></div>
- 
+
   return (
     <div className="admin-page">
       <header className="admin-header">
@@ -235,7 +233,7 @@ const toggleDay = (date) => setExpandedDays(prev => ({ ...prev, [date]: !prev[da
           </button>
         </div>
       </header>
- 
+
       <nav className="admin-tabs">
         {[
           { key: 'appointments', label: 'Citas', icon: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></> },
@@ -248,7 +246,7 @@ const toggleDay = (date) => setExpandedDays(prev => ({ ...prev, [date]: !prev[da
           </button>
         ))}
       </nav>
- 
+
       <main className="admin-content">
         {loading ? (
           <div className="loading-container"><div className="spinner"></div></div>
@@ -261,19 +259,12 @@ const toggleDay = (date) => setExpandedDays(prev => ({ ...prev, [date]: !prev[da
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     <p>No hay citas</p>
                   </div>
-               ) : sortedDates.map(date => (
-  <div key={date} className="day-group">
-    <div
-      className={'day-label' + (date === getTodayStr() ? ' day-label-today' : '')}
-      onClick={() => toggleDay(date)}
-      style={{cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}
-    >
-      <span>{formatDateLabel(date)}</span>
-      <span style={{fontSize: '11px', opacity: 0.7}}>
-        {groupedAppointments[date].length} cita(s) {expandedDays[date] ? '▲' : '▼'}
-      </span>
-    </div>
-    {expandedDays[date] && groupedAppointments[date].map((apt) => (
+                ) : sortedDates.map(date => (
+                  <div key={date} className="day-group">
+                    <div className={'day-label' + (date === getTodayStr() ? ' day-label-today' : '')}>
+                      {formatDateLabel(date)}
+                    </div>
+                    {groupedAppointments[date].map((apt) => (
                       <div key={apt.id} className="appointment-card">
                         <div className="appointment-header">
                           <div className="appointment-info">
@@ -292,7 +283,7 @@ const toggleDay = (date) => setExpandedDays(prev => ({ ...prev, [date]: !prev[da
                 ))}
               </div>
             )}
- 
+
             {activeTab === 'slots' && (
               <div className="calendar-section fade-in">
                 {!selectedDay ? (
@@ -382,7 +373,7 @@ const toggleDay = (date) => setExpandedDays(prev => ({ ...prev, [date]: !prev[da
                 )}
               </div>
             )}
- 
+
             {activeTab === 'profile' && (
               <div className="profile-section fade-in">
                 <div className="profile-photo-container">
