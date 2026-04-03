@@ -260,7 +260,7 @@ const sortedDates = Object.keys(groupedAppointments).sort()
                   </div>
                 } : sortedDates.map(date => (
   <div key={date} className="day-group">
-    <div className={`day-label ${date === today.toISOString().split('T')[0] ? 'day-label-today' : ''}`}>
+    <div className={'day-label' + (date === today.toISOString().split('T')[0] ? ' day-label-today' : '')}>
       {formatDateLabel(date)}
     </div>
     {groupedAppointments[date].map((apt) => (
