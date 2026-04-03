@@ -2,18 +2,47 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import './Admin.css'
-
+ 
 const API_URL = import.meta.env.VITE_API_URL || '/api'
-
+ 
 const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-
-  const TIME_SLOTS = [
+const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+ 
+const TIME_SLOTS = [
   '10:00','10:30','11:00','11:30',
   '12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30',
   '16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00'
 ]
-
+ 
+const getTodayStr = () => {
+  const t = new Date()
+  t.setHours(0,0,0,0)
+  return t.toISOString().split('T')[0]
+}
+ 
+const getTomorrowStr = () => {
+  const t = new Date()
+  t.setHours(0,0,0,0)
+  t.setDate(t.getDate() + 1)
+  return t.toISOString().split('T')[0]
+}
+ 
+const formatDateLabel = (dateStr) => {
+  const [year, month, day] = dateStr.split('-')
+  if (dateStr === getTodayStr()) return `Hoy — ${parseInt(day)} ${MESES[parseInt(month)-1]} ${year}`
+  if (dateStr === getTomorrowStr()) return `Mañana — ${parseInt(day)} ${MESES[parseInt(month)-1]} ${year}`
+  return `${parseInt(day)} ${MESES[parseInt(month)-1]} ${year}`
+}
+ 
+const formatTime = (time) => {
+  const [h, m] = time.split(':')
+  const hour = parseInt(h)
+  const ampm = hour >= 12 ? 'pm' : 'am'
+  const hour12 = hour % 12 || 12
+  return `${hour12}:${m}${ampm}`
+}
+ 
 export default function Admin() {
   const navigate = useNavigate()
   const { barbershop, token, logout, updateProfile, isLoading: authLoading } = useAuth()
@@ -25,16 +54,15 @@ export default function Admin() {
   const [profileName, setProfileName] = useState('')
   const [profilePhoto, setProfilePhoto] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-
-  // Calendar state
+ 
   const [calendarDate, setCalendarDate] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState(null)
   const [selectedTimes, setSelectedTimes] = useState([])
   const [savingSlots, setSavingSlots] = useState(false)
-
+ 
   useEffect(() => { if (!authLoading && !token) navigate('/login') }, [authLoading, token, navigate])
   useEffect(() => { if (barbershop) { setProfileName(barbershop.name); setProfilePhoto(barbershop.photo) } }, [barbershop])
-
+ 
   const fetchAppointments = useCallback(async () => {
     if (!token) return
     try {
@@ -42,7 +70,7 @@ export default function Admin() {
       if (r.ok) setAppointments(await r.json())
     } catch (e) { console.error(e) }
   }, [token])
-
+ 
   const fetchSlots = useCallback(async () => {
     if (!token) return
     try {
@@ -50,24 +78,21 @@ export default function Admin() {
       if (r.ok) setSlots(await r.json())
     } catch (e) { console.error(e) }
   }, [token])
-
+ 
   const loadData = useCallback(async () => {
     setLoading(true)
     await Promise.all([fetchAppointments(), fetchSlots()])
     setLoading(false)
   }, [fetchAppointments, fetchSlots])
-
+ 
   useEffect(() => { if (token) loadData() }, [token, loadData])
-
-// Auto-refresh cada 30 segundos
-useEffect(() => {
-  if (!token) return
-  const interval = setInterval(() => {
-    fetchAppointments()
-  }, 30000)
-  return () => clearInterval(interval)
-}, [token, fetchAppointments])
-
+ 
+  useEffect(() => {
+    if (!token) return
+    const interval = setInterval(() => { fetchAppointments() }, 30000)
+    return () => clearInterval(interval)
+  }, [token, fetchAppointments])
+ 
   const updateStatus = async (id, status) => {
     try {
       const r = await fetch(`${API_URL}/appointments/${id}`, {
@@ -78,7 +103,7 @@ useEffect(() => {
       if (r.ok) { fetchAppointments(); fetchSlots() }
     } catch { alert('Error de conexión') }
   }
-
+ 
   const deleteSlot = async (id) => {
     if (!confirm('¿Eliminar este horario?')) return
     try {
@@ -86,12 +111,12 @@ useEffect(() => {
       if (r.ok) fetchSlots()
     } catch { alert('Error de conexión') }
   }
-
+ 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0]
     if (file) { const reader = new FileReader(); reader.onloadend = () => setProfilePhoto(reader.result); reader.readAsDataURL(file) }
   }
-
+ 
   const saveProfile = async () => {
     if (!profileName.trim()) { alert('El nombre es requerido'); return }
     setSubmitting(true)
@@ -99,50 +124,30 @@ useEffect(() => {
     catch (err) { alert(err.message || 'No se pudo actualizar') }
     finally { setSubmitting(false) }
   }
-
+ 
   const copyLink = () => {
     if (barbershop) { navigator.clipboard.writeText(`${window.location.origin}/b/${barbershop.id}`); alert('Link copiado ✓') }
   }
-
+ 
   const handleLogout = () => { if (confirm('¿Cerrar sesión?')) { logout(); navigate('/') } }
-
-const statusClass = (s) => s === 'confirmed' ? 'status-confirmed' : s === 'rejected' ? 'status-rejected' : 'status-pending'
-const statusText = (s) => s === 'confirmed' ? 'Confirmada' : s === 'rejected' ? 'Rechazada' : 'Pendiente'
-const pendingCount = appointments.filter(a => a.status === 'pending').length
-
-const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-
-const formatDateLabel = (dateStr) => {
-  const [year, month, day] = dateStr.split('-')
-  const todayStr = today.toISOString().split('T')[0]
-  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1)
-  const tomorrowStr = tomorrow.toISOString().split('T')[0]
-  if (dateStr === todayStr) return `Hoy — ${parseInt(day)} ${MESES[parseInt(month)-1]} ${year}`
-  if (dateStr === tomorrowStr) return `Mañana — ${parseInt(day)} ${MESES[parseInt(month)-1]} ${year}`
-  return `${parseInt(day)} ${MESES[parseInt(month)-1]} ${year}`
-}
-
-const formatTime = (time) => {
-  const [h, m] = time.split(':')
-  const hour = parseInt(h)
-  const ampm = hour >= 12 ? 'pm' : 'am'
-  const hour12 = hour % 12 || 12
-  return `${hour12}:${m}${ampm}`
-}
-
-const groupedAppointments = appointments
-  .sort((a, b) => {
-    if (a.date !== b.date) return a.date.localeCompare(b.date)
-    return a.time.localeCompare(b.time)
-  })
-  .reduce((groups, apt) => {
-    if (!groups[apt.date]) groups[apt.date] = []
-    groups[apt.date].push(apt)
-    return groups
-  }, {})
-
-const sortedDates = Object.keys(groupedAppointments).sort()
-  // Calendar helpers
+ 
+  const statusClass = (s) => s === 'confirmed' ? 'status-confirmed' : s === 'rejected' ? 'status-rejected' : 'status-pending'
+  const statusText = (s) => s === 'confirmed' ? 'Confirmada' : s === 'rejected' ? 'Rechazada' : 'Pendiente'
+  const pendingCount = appointments.filter(a => a.status === 'pending').length
+ 
+  const groupedAppointments = [...appointments]
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date)
+      return a.time.localeCompare(b.time)
+    })
+    .reduce((groups, apt) => {
+      if (!groups[apt.date]) groups[apt.date] = []
+      groups[apt.date].push(apt)
+      return groups
+    }, {})
+ 
+  const sortedDates = Object.keys(groupedAppointments).sort()
+ 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear()
     const month = date.getMonth()
@@ -150,42 +155,41 @@ const sortedDates = Object.keys(groupedAppointments).sort()
     const daysInMonth = new Date(year, month + 1, 0).getDate()
     return { firstDay, daysInMonth }
   }
-
+ 
   const formatDate = (year, month, day) => {
     return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   }
-
+ 
   const getSlotsForDate = (dateStr) => slots.filter(s => s.date === dateStr)
-
+ 
+  const today = new Date()
+  today.setHours(0,0,0,0)
+ 
   const handleDayClick = (day) => {
     const dateStr = formatDate(calendarDate.getFullYear(), calendarDate.getMonth(), day)
-    const today = new Date()
-    today.setHours(0,0,0,0)
     const clicked = new Date(dateStr)
     if (clicked < today) return
     setSelectedDay(dateStr)
     const existingTimes = getSlotsForDate(dateStr).map(s => s.time)
     setSelectedTimes(existingTimes)
   }
-
+ 
   const toggleTime = (time) => {
     setSelectedTimes(prev =>
       prev.includes(time) ? prev.filter(t => t !== time) : [...prev, time]
     )
   }
-
+ 
   const saveSlots = async () => {
     if (!selectedDay) return
     setSavingSlots(true)
     try {
-      // Delete existing slots for this day
       const existingSlots = getSlotsForDate(selectedDay)
       for (const slot of existingSlots) {
         if (slot.is_available) {
           await fetch(`${API_URL}/slots/${slot.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
         }
       }
-      // Create new slots
       if (selectedTimes.length > 0) {
         await fetch(`${API_URL}/slots/bulk`, {
           method: 'POST',
@@ -199,16 +203,14 @@ const sortedDates = Object.keys(groupedAppointments).sort()
     } catch { alert('Error al guardar') }
     finally { setSavingSlots(false) }
   }
-
+ 
   const prevMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))
   const nextMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))
-
+ 
   const { firstDay, daysInMonth } = getDaysInMonth(calendarDate)
-  const today = new Date()
-  today.setHours(0,0,0,0)
-
+ 
   if (authLoading) return <div className="admin-page"><div className="loading-container"><div className="spinner"></div></div></div>
-
+ 
   return (
     <div className="admin-page">
       <header className="admin-header">
@@ -231,26 +233,25 @@ const sortedDates = Object.keys(groupedAppointments).sort()
           </button>
         </div>
       </header>
-
+ 
       <nav className="admin-tabs">
         {[
           { key: 'appointments', label: 'Citas', icon: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></> },
           { key: 'slots', label: 'Horarios', icon: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></> },
           { key: 'profile', label: 'Perfil', icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></> },
         ].map(t => (
-          <button key={t.key} className={`tab ${activeTab === t.key ? 'active' : ''}`} onClick={() => setActiveTab(t.key)}>
+          <button key={t.key} className={'tab' + (activeTab === t.key ? ' active' : '')} onClick={() => setActiveTab(t.key)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">{t.icon}</svg>
             {t.label}
           </button>
         ))}
       </nav>
-
+ 
       <main className="admin-content">
         {loading ? (
           <div className="loading-container"><div className="spinner"></div></div>
         ) : (
           <>
-            {/* CITAS */}
             {activeTab === 'appointments' && (
               <div className="appointments-list fade-in">
                 {appointments.length === 0 ? (
@@ -258,32 +259,31 @@ const sortedDates = Object.keys(groupedAppointments).sort()
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     <p>No hay citas</p>
                   </div>
-                } : sortedDates.map(date => (
-  <div key={date} className="day-group">
-    <div className={'day-label' + (date === today.toISOString().split('T')[0] ? ' day-label-today' : '')}>
-      {formatDateLabel(date)}
-    </div>
-    {groupedAppointments[date].map((apt) => (
-      <div key={apt.id} className="appointment-card">
-        <div className="appointment-header">
-          <div className="appointment-info">
-            <h3>{apt.client_name}</h3>
-            <p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.19 11.9 19.79 19.79 0 0 1 1.12 3.24 2 2 0 0 1 3.1 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>{apt.client_phone}</p>
-          </div>
-          <span className={`status-badge ${statusClass(apt.status)}`}>{statusText(apt.status)}</span>
-        </div>
-        <div className="appointment-datetime">
-          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>{formatDateLabel(date)}</span>
-          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{formatTime(apt.time)}</span>
-        </div>
-      </div>
-    ))}
-  </div>
-))}
+                ) : sortedDates.map(date => (
+                  <div key={date} className="day-group">
+                    <div className={'day-label' + (date === getTodayStr() ? ' day-label-today' : '')}>
+                      {formatDateLabel(date)}
+                    </div>
+                    {groupedAppointments[date].map((apt) => (
+                      <div key={apt.id} className="appointment-card">
+                        <div className="appointment-header">
+                          <div className="appointment-info">
+                            <h3>{apt.client_name}</h3>
+                            <p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.19 11.9 19.79 19.79 0 0 1 1.12 3.24 2 2 0 0 1 3.1 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>{apt.client_phone}</p>
+                          </div>
+                          <span className={'status-badge ' + statusClass(apt.status)}>{statusText(apt.status)}</span>
+                        </div>
+                        <div className="appointment-datetime">
+                          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>{formatDateLabel(date)}</span>
+                          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{formatTime(apt.time)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </div>
             )}
-
-            {/* HORARIOS - CALENDARIO VISUAL */}
+ 
             {activeTab === 'slots' && (
               <div className="calendar-section fade-in">
                 {!selectedDay ? (
@@ -297,13 +297,12 @@ const sortedDates = Object.keys(groupedAppointments).sort()
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
                       </button>
                     </div>
-
                     <div className="calendar-grid">
                       {DAYS_ES.map(d => (
                         <div key={d} className="cal-day-label">{d}</div>
                       ))}
                       {Array.from({ length: firstDay }).map((_, i) => (
-                        <div key={`empty-${i}`} className="cal-day empty" />
+                        <div key={'empty-' + i} className="cal-day empty" />
                       ))}
                       {Array.from({ length: daysInMonth }).map((_, i) => {
                         const day = i + 1
@@ -313,11 +312,10 @@ const sortedDates = Object.keys(groupedAppointments).sort()
                         const hasSlots = daySlots.length > 0
                         const availableCount = daySlots.filter(s => s.is_available).length
                         const bookedCount = daySlots.filter(s => !s.is_available).length
-
                         return (
                           <div
                             key={day}
-                            className={`cal-day ${isPast ? 'past' : 'future'} ${hasSlots ? 'has-slots' : ''}`}
+                            className={'cal-day ' + (isPast ? 'past' : 'future') + (hasSlots ? ' has-slots' : '')}
                             onClick={() => !isPast && handleDayClick(day)}
                           >
                             <span className="cal-day-num">{day}</span>
@@ -331,7 +329,6 @@ const sortedDates = Object.keys(groupedAppointments).sort()
                         )
                       })}
                     </div>
-
                     <div className="cal-legend">
                       <span><span className="dot available">2</span> Disponibles</span>
                       <span><span className="dot booked">1</span> Reservados</span>
@@ -356,7 +353,7 @@ const sortedDates = Object.keys(groupedAppointments).sort()
                         return (
                           <button
                             key={time}
-                            className={`time-slot-btn ${isSelected ? 'selected' : ''} ${isBooked ? 'booked' : ''}`}
+                            className={'time-slot-btn' + (isSelected ? ' selected' : '') + (isBooked ? ' booked' : '')}
                             onClick={() => !isBooked && toggleTime(time)}
                             disabled={isBooked}
                           >
@@ -369,15 +366,14 @@ const sortedDates = Object.keys(groupedAppointments).sort()
                     <div className="time-picker-actions">
                       <button className="btn-cancel" onClick={() => { setSelectedDay(null); setSelectedTimes([]) }}>Cancelar</button>
                       <button className="btn-save" onClick={saveSlots} disabled={savingSlots}>
-                        {savingSlots ? <div className="spinner small"></div> : `Guardar (${selectedTimes.length} horarios)`}
+                        {savingSlots ? <div className="spinner small"></div> : 'Guardar (' + selectedTimes.length + ' horarios)'}
                       </button>
                     </div>
                   </div>
                 )}
               </div>
             )}
-
-            {/* PERFIL */}
+ 
             {activeTab === 'profile' && (
               <div className="profile-section fade-in">
                 <div className="profile-photo-container">
