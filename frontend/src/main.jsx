@@ -6,7 +6,7 @@ import { AuthProvider } from './AuthContext.jsx'
 import './index.css'
 
 // Registrar Service Worker para notificaciones push
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then(reg => console.log('SW registrado:', reg.scope))
