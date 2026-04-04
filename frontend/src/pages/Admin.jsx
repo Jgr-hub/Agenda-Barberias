@@ -8,6 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL || '/api'
 const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+const DIAS_SEMANA = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
  
 const TIME_SLOTS = [
   '10:00','10:30','11:00','11:30',
@@ -41,6 +42,150 @@ const formatTime = (time) => {
   const ampm = hour >= 12 ? 'pm' : 'am'
   const hour12 = hour % 12 || 12
   return hour12 + ':' + m + ampm
+}
+ 
+function StatsTab({ appointments }) {
+  const now = new Date()
+  const thisMonth = now.getMonth()
+  const thisYear = now.getFullYear()
+  const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1
+  const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear
+ 
+  const thisMonthApts = appointments.filter(a => {
+    const d = new Date(a.date)
+    return d.getMonth() === thisMonth && d.getFullYear() === thisYear
+  })
+  const lastMonthApts = appointments.filter(a => {
+    const d = new Date(a.date)
+    return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear
+  })
+ 
+  const weekStart = new Date()
+  weekStart.setHours(0,0,0,0)
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+  const thisWeekApts = appointments.filter(a => new Date(a.date) >= weekStart)
+ 
+  const todayApts = appointments.filter(a => a.date === getTodayStr())
+ 
+  const diffMonth = thisMonthApts.length - lastMonthApts.length
+ 
+  const dayCount = [0,0,0,0,0,0,0]
+  appointments.forEach(a => {
+    const d = new Date(a.date)
+    dayCount[d.getDay()]++
+  })
+  const maxDay = Math.max(...dayCount, 1)
+ 
+  const hourCount = {}
+  TIME_SLOTS.forEach(t => { hourCount[t] = 0 })
+  appointments.forEach(a => {
+    if (hourCount[a.time] !== undefined) hourCount[a.time]++
+  })
+  const maxHour = Math.max(...Object.values(hourCount), 1)
+ 
+  const clientCount = {}
+  appointments.forEach(a => {
+    const key = a.client_name + '|' + a.client_phone
+    clientCount[key] = (clientCount[key] || 0) + 1
+  })
+  const topClients = Object.entries(clientCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([key, count]) => ({ name: key.split('|')[0], phone: key.split('|')[1], count }))
+ 
+  const hotHours = TIME_SLOTS.filter(t => hourCount[t] >= maxHour * 0.7)
+ 
+  return (
+    <div className="stats-tab fade-in">
+      <div className="stats-metrics">
+        <div className="stat-card">
+          <div className="stat-label">Este mes</div>
+          <div className="stat-value">{thisMonthApts.length}</div>
+          <div className={'stat-sub ' + (diffMonth >= 0 ? 'up' : 'down')}>
+            {diffMonth >= 0 ? '+' : ''}{diffMonth} vs mes ant.
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Esta semana</div>
+          <div className="stat-value">{thisWeekApts.length}</div>
+          <div className="stat-sub up">{todayApts.length} citas hoy</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Total citas</div>
+          <div className="stat-value">{appointments.length}</div>
+          <div className="stat-sub up">desde el inicio</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Hora pico</div>
+          <div className="stat-value" style={{fontSize:'18px'}}>
+            {hotHours.length > 0 ? formatTime(hotHours[0]) : '--'}
+          </div>
+          <div className="stat-sub up">más solicitada</div>
+        </div>
+      </div>
+ 
+      <div className="stats-section-title">Citas por día de la semana</div>
+      <div className="stats-chart-card">
+        {DIAS_SEMANA.map((dia, i) => (
+          <div key={dia} className="stats-bar-row">
+            <div className="stats-bar-label">{dia}</div>
+            <div className="stats-bar-track">
+              <div
+                className="stats-bar-fill"
+                style={{width: Math.round((dayCount[i] / maxDay) * 100) + '%'}}
+              >
+                {dayCount[i] > 0 && <span>{dayCount[i]}</span>}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+ 
+      <div className="stats-section-title">Horas más solicitadas</div>
+      <div className="stats-chart-card">
+        <div className="stats-hour-grid">
+          {TIME_SLOTS.map(time => {
+            const count = hourCount[time]
+            const ratio = count / maxHour
+            const isHot = ratio >= 0.7
+            const isWarm = ratio >= 0.4 && ratio < 0.7
+            return (
+              <div key={time} className={'stats-hour-cell' + (isHot ? ' hot' : isWarm ? ' warm' : '')}>
+                <div className="stats-hour-time">{formatTime(time)}</div>
+                <div className="stats-hour-count">{count}</div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+ 
+      {topClients.length > 0 && (
+        <>
+          <div className="stats-section-title">Clientes frecuentes</div>
+          <div className="stats-chart-card">
+            {topClients.map((c, i) => (
+              <div key={i} className="stats-client-row">
+                <div className="stats-client-rank">{i + 1}</div>
+                <div className="stats-client-info">
+                  <div className="stats-client-name">{c.name}</div>
+                  <div className="stats-client-phone">{c.phone}</div>
+                </div>
+                <div className="stats-client-badge">{c.count} visita{c.count > 1 ? 's' : ''}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+ 
+      {appointments.length === 0 && (
+        <div className="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <p>Aún no hay datos suficientes</p>
+          <span>Las estadísticas aparecerán cuando tengas citas registradas</span>
+        </div>
+      )}
+    </div>
+  )
 }
  
 export default function Admin() {
@@ -304,6 +449,7 @@ export default function Admin() {
       <nav className="admin-tabs">
         {[
           { key: 'appointments', label: 'Citas', icon: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></> },
+          { key: 'stats', label: 'Estadísticas', icon: <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></> },
           { key: 'slots', label: 'Horarios', icon: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></> },
           { key: 'profile', label: 'Perfil', icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></> },
         ].map(t => (
@@ -349,6 +495,8 @@ export default function Admin() {
                 )}
               </div>
             )}
+ 
+            {activeTab === 'stats' && <StatsTab appointments={appointments} />}
  
             {activeTab === 'slots' && (
               <div className="calendar-section fade-in">
