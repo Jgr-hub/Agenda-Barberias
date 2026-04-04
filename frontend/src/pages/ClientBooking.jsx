@@ -64,7 +64,10 @@ const [lastBooking, setLastBooking] = useState(null)
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.client_name.trim()) { alert('Por favor ingresa tu nombre'); return }
-    if (!form.client_phone.trim()) { alert('Por favor ingresa tu número de teléfono'); return }
+const phoneDigits = form.client_phone.replace(/\D/g, '')
+if (!form.client_phone.trim()) { alert('Por favor ingresa tu número de teléfono'); return }
+if (phoneDigits.length < 7) { alert('Por favor ingresa un número de teléfono válido'); return }
+if (/^(.)\1+$/.test(phoneDigits)) { alert('Por favor ingresa tu número de teléfono real'); return }
     if (!selectedSlot || !barbershopId) return
     setSubmitting(true)
     try {
@@ -108,7 +111,7 @@ const [lastBooking, setLastBooking] = useState(null)
   const hour12 = hour % 12 || 12
   return (
     <p className="booking-datetime">
-      📅 {parseInt(day)}/{MESES[parseInt(month)-1]}/{year} a las {hour12}:{m}{ampm}
+     📆 {parseInt(day)}/{MESES[parseInt(month)-1]}/{year} a las {hour12}:{m}{ampm}
     </p>
   )
 })()}
@@ -175,8 +178,9 @@ const [lastBooking, setLastBooking] = useState(null)
             </p>
             <form onSubmit={handleSubmit}>
               <div className="input-group">
-                <label>Nombre</label>
-                <input type="text" placeholder="Tu nombre completo" value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
+                <label>Nombre y apellido</label>
+<input type="text" placeholder="Ej: Juan Pérez" value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
+                
               </div>
               <div className="input-group">
                 <label>Teléfono</label>
