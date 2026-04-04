@@ -123,3 +123,119 @@
 day-group { margin-bottom: 20px; }
 .day-label { font-size: 11px; font-weight: 500; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
 .day-label-today { color: #e53e3e; }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: #1a1a1a;
+  border-radius: 10px;
+  padding: 14px;
+  border: 0.5px solid #2a2a2a;
+}
+
+.stat-label {
+  color: #888;
+  font-size: 11px;
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  color: #fff;
+  font-size: 26px;
+  font-weight: 500;
+}
+
+.stat-sub {
+  color: #4ade80;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.stats-chart {
+  background: #1a1a1a;
+  border-radius: 10px;
+  padding: 16px;
+  border: 0.5px solid #2a2a2a;
+  margin-bottom: 10px;
+}
+
+.stats-chart-title {
+  color: #ccc;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 14px;
+}
+
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.bar-day-label {
+  color: #888;
+  font-size: 12px;
+  width: 36px;
+  text-align: right;
+}
+
+.bar-track {
+  flex: 1;
+  background: #2a2a2a;
+  border-radius: 4px;
+  height: 20px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: #c0392b;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.hour-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.hour-cell {
+  border-radius: 6px;
+  padding: 8px 4px;
+  text-align: center;
+}
+
+.hour-time {
+  color: #aaa;
+  font-size: 10px;
+}
+
+.hour-count {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.top-client-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 0.5px solid #2a2a2a;
+}
+
+.top-client-row:last-child {
+  border-bottom: none;
+}

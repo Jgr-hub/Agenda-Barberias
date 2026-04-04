@@ -8,7 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL || '/api'
 const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-const DIAS_SEMANA = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
+const DAYS_LABELS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
  
 const TIME_SLOTS = [
   '10:00','10:30','11:00','11:30',
@@ -42,150 +42,6 @@ const formatTime = (time) => {
   const ampm = hour >= 12 ? 'pm' : 'am'
   const hour12 = hour % 12 || 12
   return hour12 + ':' + m + ampm
-}
- 
-function StatsTab({ appointments }) {
-  const now = new Date()
-  const thisMonth = now.getMonth()
-  const thisYear = now.getFullYear()
-  const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1
-  const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear
- 
-  const thisMonthApts = appointments.filter(a => {
-    const d = new Date(a.date)
-    return d.getMonth() === thisMonth && d.getFullYear() === thisYear
-  })
-  const lastMonthApts = appointments.filter(a => {
-    const d = new Date(a.date)
-    return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear
-  })
- 
-  const weekStart = new Date()
-  weekStart.setHours(0,0,0,0)
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay())
-  const thisWeekApts = appointments.filter(a => new Date(a.date) >= weekStart)
- 
-  const todayApts = appointments.filter(a => a.date === getTodayStr())
- 
-  const diffMonth = thisMonthApts.length - lastMonthApts.length
- 
-  const dayCount = [0,0,0,0,0,0,0]
-  appointments.forEach(a => {
-    const d = new Date(a.date)
-    dayCount[d.getDay()]++
-  })
-  const maxDay = Math.max(...dayCount, 1)
- 
-  const hourCount = {}
-  TIME_SLOTS.forEach(t => { hourCount[t] = 0 })
-  appointments.forEach(a => {
-    if (hourCount[a.time] !== undefined) hourCount[a.time]++
-  })
-  const maxHour = Math.max(...Object.values(hourCount), 1)
- 
-  const clientCount = {}
-  appointments.forEach(a => {
-    const key = a.client_name + '|' + a.client_phone
-    clientCount[key] = (clientCount[key] || 0) + 1
-  })
-  const topClients = Object.entries(clientCount)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([key, count]) => ({ name: key.split('|')[0], phone: key.split('|')[1], count }))
- 
-  const hotHours = TIME_SLOTS.filter(t => hourCount[t] >= maxHour * 0.7)
- 
-  return (
-    <div className="stats-tab fade-in">
-      <div className="stats-metrics">
-        <div className="stat-card">
-          <div className="stat-label">Este mes</div>
-          <div className="stat-value">{thisMonthApts.length}</div>
-          <div className={'stat-sub ' + (diffMonth >= 0 ? 'up' : 'down')}>
-            {diffMonth >= 0 ? '+' : ''}{diffMonth} vs mes ant.
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Esta semana</div>
-          <div className="stat-value">{thisWeekApts.length}</div>
-          <div className="stat-sub up">{todayApts.length} citas hoy</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Total citas</div>
-          <div className="stat-value">{appointments.length}</div>
-          <div className="stat-sub up">desde el inicio</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Hora pico</div>
-          <div className="stat-value" style={{fontSize:'18px'}}>
-            {hotHours.length > 0 ? formatTime(hotHours[0]) : '--'}
-          </div>
-          <div className="stat-sub up">más solicitada</div>
-        </div>
-      </div>
- 
-      <div className="stats-section-title">Citas por día de la semana</div>
-      <div className="stats-chart-card">
-        {DIAS_SEMANA.map((dia, i) => (
-          <div key={dia} className="stats-bar-row">
-            <div className="stats-bar-label">{dia}</div>
-            <div className="stats-bar-track">
-              <div
-                className="stats-bar-fill"
-                style={{width: Math.round((dayCount[i] / maxDay) * 100) + '%'}}
-              >
-                {dayCount[i] > 0 && <span>{dayCount[i]}</span>}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
- 
-      <div className="stats-section-title">Horas más solicitadas</div>
-      <div className="stats-chart-card">
-        <div className="stats-hour-grid">
-          {TIME_SLOTS.map(time => {
-            const count = hourCount[time]
-            const ratio = count / maxHour
-            const isHot = ratio >= 0.7
-            const isWarm = ratio >= 0.4 && ratio < 0.7
-            return (
-              <div key={time} className={'stats-hour-cell' + (isHot ? ' hot' : isWarm ? ' warm' : '')}>
-                <div className="stats-hour-time">{formatTime(time)}</div>
-                <div className="stats-hour-count">{count}</div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
- 
-      {topClients.length > 0 && (
-        <>
-          <div className="stats-section-title">Clientes frecuentes</div>
-          <div className="stats-chart-card">
-            {topClients.map((c, i) => (
-              <div key={i} className="stats-client-row">
-                <div className="stats-client-rank">{i + 1}</div>
-                <div className="stats-client-info">
-                  <div className="stats-client-name">{c.name}</div>
-                  <div className="stats-client-phone">{c.phone}</div>
-                </div>
-                <div className="stats-client-badge">{c.count} visita{c.count > 1 ? 's' : ''}</div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
- 
-      {appointments.length === 0 && (
-        <div className="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <p>Aún no hay datos suficientes</p>
-          <span>Las estadísticas aparecerán cuando tengas citas registradas</span>
-        </div>
-      )}
-    </div>
-  )
 }
  
 export default function Admin() {
@@ -249,14 +105,6 @@ export default function Admin() {
       })
       if (r.ok) { fetchAppointments(); fetchSlots() }
       else alert('No se pudo cancelar la cita')
-    } catch { alert('Error de conexión') }
-  }
- 
-  const deleteSlot = async (id) => {
-    if (!confirm('¿Eliminar este horario?')) return
-    try {
-      const r = await fetch(API_URL + '/slots/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } })
-      if (r.ok) fetchSlots()
     } catch { alert('Error de conexión') }
   }
  
@@ -368,6 +216,52 @@ export default function Admin() {
  
   const { firstDay, daysInMonth } = getDaysInMonth(calendarDate)
  
+  const computeStats = () => {
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+    const weekStart = new Date(now)
+    weekStart.setDate(now.getDate() - now.getDay())
+    weekStart.setHours(0,0,0,0)
+    const weekStartStr = weekStart.toISOString().split('T')[0]
+ 
+    const thisMonth = appointments.filter(a => a.date >= monthStart)
+    const thisWeek = appointments.filter(a => a.date >= weekStartStr)
+ 
+    const byday = [0,0,0,0,0,0,0]
+    appointments.forEach(a => {
+      const d = new Date(a.date + 'T12:00:00')
+      byday[d.getDay()]++
+    })
+    const maxDay = Math.max(...byday)
+ 
+    const byhour = {}
+    appointments.forEach(a => {
+      const h = parseInt(a.time.split(':')[0])
+      byhour[h] = (byhour[h] || 0) + 1
+    })
+    const maxHour = Math.max(...Object.values(byhour), 1)
+ 
+    const peakHour = Object.entries(byhour).sort((a,b) => b[1]-a[1])[0]
+    const peakHourStr = peakHour ? formatTime(peakHour[0]+':00') : '-'
+ 
+    const clientCount = {}
+    appointments.forEach(a => {
+      const key = a.client_name + '|' + a.client_phone
+      clientCount[key] = (clientCount[key] || 0) + 1
+    })
+    const topClients = Object.entries(clientCount)
+      .sort((a,b) => b[1]-a[1])
+      .slice(0, 5)
+      .map(([key, count]) => ({ name: key.split('|')[0], phone: key.split('|')[1], count }))
+ 
+    const uniqueDays = new Set(appointments.map(a => a.date)).size
+    const avgPerDay = uniqueDays > 0 ? (appointments.length / uniqueDays).toFixed(1) : '0'
+ 
+    return { thisMonth: thisMonth.length, thisWeek: thisWeek.length, todayCount, byday, maxDay, byhour, maxHour, peakHourStr, topClients, avgPerDay, total: appointments.length }
+  }
+ 
+  const stats = computeStats()
+ 
   const renderAppointmentCard = (apt) => (
     <div key={apt.id} className="appointment-card">
       <div className="appointment-header">
@@ -380,39 +274,23 @@ export default function Admin() {
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
           <span className={'status-badge ' + statusClass(apt.status)}>{statusText(apt.status)}</span>
-          <button
-            onClick={() => deleteAppointment(apt.id)}
-            style={{background:'none',border:'none',cursor:'pointer',padding:'4px',color:'#e55',opacity:0.7}}
-            title="Cancelar cita"
-          >
+          <button onClick={() => deleteAppointment(apt.id)} style={{background:'none',border:'none',cursor:'pointer',padding:'4px',color:'#e55',opacity:0.7}} title="Cancelar cita">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           </button>
         </div>
       </div>
       <div className="appointment-datetime">
-        <span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          {formatDateLabel(apt.date)}
-        </span>
-        <span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          {formatTime(apt.time)}
-        </span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>{formatDateLabel(apt.date)}</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>{formatTime(apt.time)}</span>
       </div>
     </div>
   )
  
   const renderDayGroup = (date, group) => (
     <div key={date} className="day-group">
-      <div
-        className={'day-label' + (date === todayStr ? ' day-label-today' : '')}
-        onClick={() => toggleDay(date)}
-        style={{cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}
-      >
+      <div className={'day-label' + (date === todayStr ? ' day-label-today' : '')} onClick={() => toggleDay(date)} style={{cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
         <span>{formatDateLabel(date)}</span>
-        <span style={{fontSize:'11px',opacity:0.7}}>
-          {group.length} cita(s) {expandedDays[date] ? '▲' : '▼'}
-        </span>
+        <span style={{fontSize:'11px',opacity:0.7}}>{group.length} cita(s) {expandedDays[date] ? '▲' : '▼'}</span>
       </div>
       {expandedDays[date] && group.map(apt => renderAppointmentCard(apt))}
     </div>
@@ -449,7 +327,7 @@ export default function Admin() {
       <nav className="admin-tabs">
         {[
           { key: 'appointments', label: 'Citas', icon: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></> },
-          { key: 'stats', label: 'Estadísticas', icon: <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></> },
+          { key: 'stats', label: 'Stats', icon: <><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></> },
           { key: 'slots', label: 'Horarios', icon: <><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></> },
           { key: 'profile', label: 'Perfil', icon: <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></> },
         ].map(t => (
@@ -477,10 +355,7 @@ export default function Admin() {
                     {upcomingDates.map(date => renderDayGroup(date, groupedUpcoming[date]))}
                     {pastAppointments.length > 0 && (
                       <div style={{marginTop:'24px'}}>
-                        <button
-                          onClick={() => setShowHistory(prev => !prev)}
-                          style={{width:'100%',background:'none',border:'0.5px solid #333',borderRadius:'8px',padding:'10px 16px',color:'#888',cursor:'pointer',fontSize:'13px',display:'flex',justifyContent:'space-between',alignItems:'center'}}
-                        >
+                        <button onClick={() => setShowHistory(prev => !prev)} style={{width:'100%',background:'none',border:'0.5px solid #333',borderRadius:'8px',padding:'10px 16px',color:'#888',cursor:'pointer',fontSize:'13px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                           <span>Historial ({pastAppointments.length} citas)</span>
                           <span>{showHistory ? '▲' : '▼'}</span>
                         </button>
@@ -496,28 +371,110 @@ export default function Admin() {
               </div>
             )}
  
-            {activeTab === 'stats' && <StatsTab appointments={appointments} />}
+            {activeTab === 'stats' && (
+              <div className="fade-in" style={{paddingBottom:'24px'}}>
+                {appointments.length === 0 ? (
+                  <div className="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    <p>Aún no hay datos suficientes</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="stats-grid">
+                      <div className="stat-card">
+                        <div className="stat-label">Este mes</div>
+                        <div className="stat-value">{stats.thisMonth}</div>
+                        <div className="stat-sub">+{stats.thisMonth} vs mes ant.</div>
+                      </div>
+                      <div className="stat-card">
+                        <div className="stat-label">Esta semana</div>
+                        <div className="stat-value">{stats.thisWeek}</div>
+                        <div className="stat-sub">{stats.todayCount} citas hoy</div>
+                      </div>
+                      <div className="stat-card">
+                        <div className="stat-label">Total citas</div>
+                        <div className="stat-value">{stats.total}</div>
+                        <div className="stat-sub">desde el inicio</div>
+                      </div>
+                      <div className="stat-card">
+                        <div className="stat-label">Hora pico</div>
+                        <div className="stat-value" style={{fontSize:'18px'}}>{stats.peakHourStr}</div>
+                        <div className="stat-sub">más solicitada</div>
+                      </div>
+                    </div>
+ 
+                    <div className="stats-chart">
+                      <div className="stats-chart-title">Citas por día de la semana</div>
+                      {DAYS_LABELS.map((label, i) => {
+                        const count = stats.byday[i]
+                        const pct = stats.maxDay > 0 ? Math.round((count / stats.maxDay) * 100) : 0
+                        return (
+                          <div key={label} className="bar-row">
+                            <div className="bar-day-label">{label}</div>
+                            <div className="bar-track">
+                              {count > 0 && (
+                                <div className="bar-fill" style={{width: pct + '%'}}>
+                                  {count}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+ 
+                    <div className="stats-chart">
+                      <div className="stats-chart-title">Horas más solicitadas</div>
+                      <div className="hour-grid">
+                        {Object.entries(stats.byhour).sort((a,b) => parseInt(a[0])-parseInt(b[0])).map(([h, count]) => {
+                          const pct = count / stats.maxHour
+                          const bg = pct > 0.7 ? '#7b1e1e' : pct > 0.4 ? '#5c1616' : '#2a2a2a'
+                          return (
+                            <div key={h} className="hour-cell" style={{background: bg}}>
+                              <div className="hour-time">{formatTime(h+':00')}</div>
+                              <div className="hour-count">{count}</div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+ 
+                    {stats.topClients.length > 0 && (
+                      <div className="stats-chart">
+                        <div className="stats-chart-title">Clientes frecuentes</div>
+                        {stats.topClients.map((c, i) => (
+                          <div key={i} className="top-client-row">
+                            <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                              <span style={{color:'#888',fontSize:'12px',width:'20px'}}>{i+1}</span>
+                              <div>
+                                <div style={{color:'#fff',fontSize:'13px'}}>{c.name}</div>
+                                <div style={{color:'#666',fontSize:'11px'}}>{c.phone}</div>
+                              </div>
+                            </div>
+                            <div style={{background:'#2a2a2a',color:'#ccc',fontSize:'11px',padding:'3px 8px',borderRadius:'20px'}}>
+                              {c.count} visita{c.count > 1 ? 's' : ''}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
  
             {activeTab === 'slots' && (
               <div className="calendar-section fade-in">
                 {!selectedDay ? (
                   <>
                     <div className="calendar-header">
-                      <button className="cal-nav-btn" onClick={prevMonth}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
-                      </button>
+                      <button className="cal-nav-btn" onClick={prevMonth}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg></button>
                       <h2>{MONTHS_ES[calendarDate.getMonth()]} {calendarDate.getFullYear()}</h2>
-                      <button className="cal-nav-btn" onClick={nextMonth}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
-                      </button>
+                      <button className="cal-nav-btn" onClick={nextMonth}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg></button>
                     </div>
                     <div className="calendar-grid">
-                      {DAYS_ES.map(d => (
-                        <div key={d} className="cal-day-label">{d}</div>
-                      ))}
-                      {Array.from({ length: firstDay }).map((_, i) => (
-                        <div key={'empty-' + i} className="cal-day empty" />
-                      ))}
+                      {DAYS_ES.map(d => <div key={d} className="cal-day-label">{d}</div>)}
+                      {Array.from({ length: firstDay }).map((_, i) => <div key={'e'+i} className="cal-day empty" />)}
                       {Array.from({ length: daysInMonth }).map((_, i) => {
                         const day = i + 1
                         const dateStr = formatDate(calendarDate.getFullYear(), calendarDate.getMonth(), day)
@@ -527,18 +484,12 @@ export default function Admin() {
                         const availableCount = daySlots.filter(s => s.is_available).length
                         const bookedCount = daySlots.filter(s => !s.is_available).length
                         return (
-                          <div
-                            key={day}
-                            className={'cal-day ' + (isPast ? 'past' : 'future') + (hasSlots ? ' has-slots' : '')}
-                            onClick={() => !isPast && handleDayClick(day)}
-                          >
+                          <div key={day} className={'cal-day '+(isPast?'past':'future')+(hasSlots?' has-slots':'')} onClick={() => !isPast && handleDayClick(day)}>
                             <span className="cal-day-num">{day}</span>
-                            {hasSlots && (
-                              <div className="cal-day-indicators">
-                                {availableCount > 0 && <span className="dot available">{availableCount}</span>}
-                                {bookedCount > 0 && <span className="dot booked">{bookedCount}</span>}
-                              </div>
-                            )}
+                            {hasSlots && <div className="cal-day-indicators">
+                              {availableCount > 0 && <span className="dot available">{availableCount}</span>}
+                              {bookedCount > 0 && <span className="dot booked">{bookedCount}</span>}
+                            </div>}
                           </div>
                         )
                       })}
@@ -553,8 +504,7 @@ export default function Admin() {
                   <div className="time-picker fade-in">
                     <div className="time-picker-header">
                       <button className="back-btn" onClick={() => { setSelectedDay(null); setSelectedTimes([]) }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
-                        Volver
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>Volver
                       </button>
                       <h2>{selectedDay}</h2>
                     </div>
@@ -565,14 +515,8 @@ export default function Admin() {
                         const isBooked = existingSlot && !existingSlot.is_available
                         const isSelected = selectedTimes.includes(time)
                         return (
-                          <button
-                            key={time}
-                            className={'time-slot-btn' + (isSelected ? ' selected' : '') + (isBooked ? ' booked' : '')}
-                            onClick={() => !isBooked && toggleTime(time)}
-                            disabled={isBooked}
-                          >
-                            {time}
-                            {isBooked && <span className="booked-label">Reservado</span>}
+                          <button key={time} className={'time-slot-btn'+(isSelected?' selected':'')+(isBooked?' booked':'')} onClick={() => !isBooked && toggleTime(time)} disabled={isBooked}>
+                            {time}{isBooked && <span className="booked-label">Reservado</span>}
                           </button>
                         )
                       })}
@@ -580,7 +524,7 @@ export default function Admin() {
                     <div className="time-picker-actions">
                       <button className="btn-cancel" onClick={() => { setSelectedDay(null); setSelectedTimes([]) }}>Cancelar</button>
                       <button className="btn-save" onClick={saveSlots} disabled={savingSlots}>
-                        {savingSlots ? <div className="spinner small"></div> : 'Guardar (' + selectedTimes.length + ' horarios)'}
+                        {savingSlots ? <div className="spinner small"></div> : 'Guardar ('+selectedTimes.length+' horarios)'}
                       </button>
                     </div>
                   </div>
