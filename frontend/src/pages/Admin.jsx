@@ -2,39 +2,39 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import './Admin.css'
-
+ 
 const API_URL = import.meta.env.VITE_API_URL || '/api'
-
+ 
 const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-
+ 
 const TIME_SLOTS = [
   '10:00','10:30','11:00','11:30',
   '12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30',
   '16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00'
 ]
-
+ 
 const getTodayStr = () => {
   const t = new Date()
   t.setHours(0,0,0,0)
   return t.toISOString().split('T')[0]
 }
-
+ 
 const getTomorrowStr = () => {
   const t = new Date()
   t.setHours(0,0,0,0)
   t.setDate(t.getDate() + 1)
   return t.toISOString().split('T')[0]
 }
-
+ 
 const formatDateLabel = (dateStr) => {
   const [year, month, day] = dateStr.split('-')
   if (dateStr === getTodayStr()) return 'Hoy — ' + parseInt(day) + ' ' + MESES[parseInt(month)-1] + ' ' + year
   if (dateStr === getTomorrowStr()) return 'Mañana — ' + parseInt(day) + ' ' + MESES[parseInt(month)-1] + ' ' + year
   return parseInt(day) + ' ' + MESES[parseInt(month)-1] + ' ' + year
 }
-
+ 
 const formatTime = (time) => {
   const [h, m] = time.split(':')
   const hour = parseInt(h)
@@ -42,7 +42,7 @@ const formatTime = (time) => {
   const hour12 = hour % 12 || 12
   return hour12 + ':' + m + ampm
 }
-
+ 
 export default function Admin() {
   const navigate = useNavigate()
   const { barbershop, token, logout, updateProfile, isLoading: authLoading } = useAuth()
@@ -56,15 +56,15 @@ export default function Admin() {
   const [submitting, setSubmitting] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [expandedDays, setExpandedDays] = useState(() => ({ [getTodayStr()]: true }))
-
+ 
   const [calendarDate, setCalendarDate] = useState(new Date())
   const [selectedDay, setSelectedDay] = useState(null)
   const [selectedTimes, setSelectedTimes] = useState([])
   const [savingSlots, setSavingSlots] = useState(false)
-
+ 
   useEffect(() => { if (!authLoading && !token) navigate('/login') }, [authLoading, token, navigate])
   useEffect(() => { if (barbershop) { setProfileName(barbershop.name); setProfilePhoto(barbershop.photo) } }, [barbershop])
-
+ 
   const fetchAppointments = useCallback(async () => {
     if (!token) return
     try {
@@ -72,7 +72,7 @@ export default function Admin() {
       if (r.ok) setAppointments(await r.json())
     } catch (e) { console.error(e) }
   }, [token])
-
+ 
   const fetchSlots = useCallback(async () => {
     if (!token) return
     try {
@@ -80,21 +80,21 @@ export default function Admin() {
       if (r.ok) setSlots(await r.json())
     } catch (e) { console.error(e) }
   }, [token])
-
+ 
   const loadData = useCallback(async () => {
     setLoading(true)
     await Promise.all([fetchAppointments(), fetchSlots()])
     setLoading(false)
   }, [fetchAppointments, fetchSlots])
-
+ 
   useEffect(() => { if (token) loadData() }, [token, loadData])
-
+ 
   useEffect(() => {
     if (!token) return
     const interval = setInterval(() => { fetchAppointments() }, 30000)
     return () => clearInterval(interval)
   }, [token, fetchAppointments])
-
+ 
   const deleteAppointment = async (id) => {
     if (!confirm('¿Cancelar esta cita?')) return
     try {
@@ -106,7 +106,7 @@ export default function Admin() {
       else alert('No se pudo cancelar la cita')
     } catch { alert('Error de conexión') }
   }
-
+ 
   const deleteSlot = async (id) => {
     if (!confirm('¿Eliminar este horario?')) return
     try {
@@ -114,12 +114,12 @@ export default function Admin() {
       if (r.ok) fetchSlots()
     } catch { alert('Error de conexión') }
   }
-
+ 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0]
     if (file) { const reader = new FileReader(); reader.onloadend = () => setProfilePhoto(reader.result); reader.readAsDataURL(file) }
   }
-
+ 
   const saveProfile = async () => {
     if (!profileName.trim()) { alert('El nombre es requerido'); return }
     setSubmitting(true)
@@ -127,22 +127,22 @@ export default function Admin() {
     catch (err) { alert(err.message || 'No se pudo actualizar') }
     finally { setSubmitting(false) }
   }
-
+ 
   const copyLink = () => {
     if (barbershop) { navigator.clipboard.writeText(window.location.origin + '/b/' + barbershop.id); alert('Link copiado ✓') }
   }
-
+ 
   const handleLogout = () => { if (confirm('¿Cerrar sesión?')) { logout(); navigate('/') } }
-
+ 
   const statusClass = (s) => s === 'confirmed' ? 'status-confirmed' : s === 'rejected' ? 'status-rejected' : 'status-pending'
   const statusText = (s) => s === 'confirmed' ? 'Confirmada' : s === 'rejected' ? 'Rechazada' : 'Pendiente'
-
+ 
   const todayStr = getTodayStr()
   const todayCount = appointments.filter(a => a.date === todayStr).length
-
+ 
   const upcomingAppointments = appointments.filter(a => a.date >= todayStr)
   const pastAppointments = appointments.filter(a => a.date < todayStr)
-
+ 
   const groupByDate = (list) => {
     const sorted = [...list].sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date)
@@ -154,14 +154,14 @@ export default function Admin() {
       return groups
     }, {})
   }
-
+ 
   const groupedUpcoming = groupByDate(upcomingAppointments)
   const groupedPast = groupByDate(pastAppointments)
   const upcomingDates = Object.keys(groupedUpcoming).sort()
   const pastDates = Object.keys(groupedPast).sort((a, b) => b.localeCompare(a))
-
+ 
   const toggleDay = (date) => setExpandedDays(prev => ({ ...prev, [date]: !prev[date] }))
-
+ 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear()
     const month = date.getMonth()
@@ -169,16 +169,16 @@ export default function Admin() {
     const daysInMonth = new Date(year, month + 1, 0).getDate()
     return { firstDay, daysInMonth }
   }
-
+ 
   const formatDate = (year, month, day) => {
     return year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0')
   }
-
+ 
   const getSlotsForDate = (dateStr) => slots.filter(s => s.date === dateStr)
-
+ 
   const today = new Date()
   today.setHours(0,0,0,0)
-
+ 
   const handleDayClick = (day) => {
     const dateStr = formatDate(calendarDate.getFullYear(), calendarDate.getMonth(), day)
     const clicked = new Date(dateStr)
@@ -187,13 +187,13 @@ export default function Admin() {
     const existingTimes = getSlotsForDate(dateStr).map(s => s.time)
     setSelectedTimes(existingTimes)
   }
-
+ 
   const toggleTime = (time) => {
     setSelectedTimes(prev =>
       prev.includes(time) ? prev.filter(t => t !== time) : [...prev, time]
     )
   }
-
+ 
   const saveSlots = async () => {
     if (!selectedDay) return
     setSavingSlots(true)
@@ -217,12 +217,12 @@ export default function Admin() {
     } catch { alert('Error al guardar') }
     finally { setSavingSlots(false) }
   }
-
+ 
   const prevMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))
   const nextMonth = () => setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))
-
+ 
   const { firstDay, daysInMonth } = getDaysInMonth(calendarDate)
-
+ 
   const renderAppointmentCard = (apt) => (
     <div key={apt.id} className="appointment-card">
       <div className="appointment-header">
@@ -256,7 +256,7 @@ export default function Admin() {
       </div>
     </div>
   )
-
+ 
   const renderDayGroup = (date, group) => (
     <div key={date} className="day-group">
       <div
@@ -272,9 +272,9 @@ export default function Admin() {
       {expandedDays[date] && group.map(apt => renderAppointmentCard(apt))}
     </div>
   )
-
+ 
   if (authLoading) return <div className="admin-page"><div className="loading-container"><div className="spinner"></div></div></div>
-
+ 
   return (
     <div className="admin-page">
       <header className="admin-header">
@@ -300,7 +300,7 @@ export default function Admin() {
           </button>
         </div>
       </header>
-
+ 
       <nav className="admin-tabs">
         {[
           { key: 'appointments', label: 'Citas', icon: <><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></> },
@@ -313,7 +313,7 @@ export default function Admin() {
           </button>
         ))}
       </nav>
-
+ 
       <main className="admin-content">
         {loading ? (
           <div className="loading-container"><div className="spinner"></div></div>
@@ -349,7 +349,7 @@ export default function Admin() {
                 )}
               </div>
             )}
-
+ 
             {activeTab === 'slots' && (
               <div className="calendar-section fade-in">
                 {!selectedDay ? (
@@ -387,4 +387,104 @@ export default function Admin() {
                             <span className="cal-day-num">{day}</span>
                             {hasSlots && (
                               <div className="cal-day-indicators">
+                                {availableCount > 0 && <span className="dot available">{availableCount}</span>}
+                                {bookedCount > 0 && <span className="dot booked">{bookedCount}</span>}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div className="cal-legend">
+                      <span><span className="dot available">2</span> Disponibles</span>
+                      <span><span className="dot booked">1</span> Reservados</span>
+                    </div>
+                    <p className="cal-hint">Toca un día para configurar los horarios disponibles</p>
+                  </>
+                ) : (
+                  <div className="time-picker fade-in">
+                    <div className="time-picker-header">
+                      <button className="back-btn" onClick={() => { setSelectedDay(null); setSelectedTimes([]) }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+                        Volver
+                      </button>
+                      <h2>{selectedDay}</h2>
+                    </div>
+                    <p className="time-picker-hint">Selecciona los horarios disponibles para este día</p>
+                    <div className="time-grid">
+                      {TIME_SLOTS.map(time => {
+                        const existingSlot = getSlotsForDate(selectedDay).find(s => s.time === time)
+                        const isBooked = existingSlot && !existingSlot.is_available
+                        const isSelected = selectedTimes.includes(time)
+                        return (
+                          <button
+                            key={time}
+                            className={'time-slot-btn' + (isSelected ? ' selected' : '') + (isBooked ? ' booked' : '')}
+                            onClick={() => !isBooked && toggleTime(time)}
+                            disabled={isBooked}
+                          >
+                            {time}
+                            {isBooked && <span className="booked-label">Reservado</span>}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <div className="time-picker-actions">
+                      <button className="btn-cancel" onClick={() => { setSelectedDay(null); setSelectedTimes([]) }}>Cancelar</button>
+                      <button className="btn-save" onClick={saveSlots} disabled={savingSlots}>
+                        {savingSlots ? <div className="spinner small"></div> : 'Guardar (' + selectedTimes.length + ' horarios)'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
  
+            {activeTab === 'profile' && (
+              <div className="profile-section fade-in">
+                <div className="profile-photo-container">
+                  {editingProfile ? (
+                    <label className="photo-upload">
+                      {profilePhoto ? <img src={profilePhoto} alt="" /> : <div className="photo-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg></div>}
+                      <div className="photo-overlay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+                      <input type="file" accept="image/*" onChange={handlePhotoChange} />
+                    </label>
+                  ) : (
+                    <div className="profile-photo">
+                      {barbershop?.photo ? <img src={barbershop.photo} alt="" /> : <div className="photo-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/></svg></div>}
+                    </div>
+                  )}
+                </div>
+                {editingProfile
+                  ? <input type="text" className="profile-name-input" value={profileName} onChange={(e) => setProfileName(e.target.value)} placeholder="Nombre de la barbería" />
+                  : <h2 className="profile-name">{barbershop?.name}</h2>
+                }
+                {editingProfile ? (
+                  <div className="profile-actions">
+                    <button className="btn-cancel" onClick={() => { setEditingProfile(false); setProfileName(barbershop?.name || ''); setProfilePhoto(barbershop?.photo || null) }}>Cancelar</button>
+                    <button className="btn-save" onClick={saveProfile} disabled={submitting}>{submitting ? <div className="spinner small"></div> : 'Guardar'}</button>
+                  </div>
+                ) : (
+                  <button className="edit-profile-btn" onClick={() => setEditingProfile(true)}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Editar perfil
+                  </button>
+                )}
+                <div className="link-section">
+                  <h3>Link de reservas</h3>
+                  <div className="link-container">
+                    <span className="link-text">{window.location.origin}/b/{barbershop?.id}</span>
+                    <button className="copy-btn" onClick={copyLink}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                  </div>
+                  <p className="link-hint">Comparte este link con tus clientes para que reserven citas</p>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+    </div>
+  )
+}
